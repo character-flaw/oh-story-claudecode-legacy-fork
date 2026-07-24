@@ -370,11 +370,11 @@ I built this skill pack to help me through a job-hunting transition :joy:, and I
 
 ## Star History
 
-<a href="https://www.star-history.com/?repos=worldwonderer%2Foh-story-claudecode&type=date&legend=top-left">
+<a href="https://www.star-history.com/?repos=qin1473692580-ux%2Foh-story-claudecode&type=date&legend=top-left">
  <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=worldwonderer/oh-story-claudecode&type=date&theme=dark&legend=top-left" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=worldwonderer/oh-story-claudecode&type=date&legend=top-left" />
-   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=worldwonderer/oh-story-claudecode&type=date&legend=top-left" />
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=qin1473692580-ux/oh-story-claudecode&type=date&theme=dark&legend=top-left" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=qin1473692580-ux/oh-story-claudecode&type=date&legend=top-left" />
+   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=qin1473692580-ux/oh-story-claudecode&type=date&legend=top-left" />
  </picture>
 </a>
 
@@ -384,9 +384,8 @@ Contributions are welcome — new skills, knowledge base additions, market data 
 
 ## Community
 
-- **Telegram**: <https://t.me/ohstoryclaudecode> — chat, troubleshooting, and feature discussion.
-- **GitHub Discussions**: [ask questions, get help, share workflows](https://github.com/worldwonderer/oh-story-claudecode/discussions).
-- **WeChat Official Account** (Chinese): search "AI马内" on WeChat for build notes and updates on this fork.
+- **GitHub Discussions**: [ask questions, get help, share workflows](https://github.com/qin1473692580-ux/oh-story-claudecode/discussions).
+- **WeChat Official Account** (Chinese): search "AI马内" on WeChat — leave a message in the account to get in touch on personal WeChat.
 
 ## Acknowledgments
 

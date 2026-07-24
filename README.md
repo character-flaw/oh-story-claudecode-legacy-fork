@@ -379,11 +379,11 @@ Agent 按需加载 `references/` 中的写作理论（角色设计、对话技�
 
 ## Star History
 
-<a href="https://www.star-history.com/?repos=worldwonderer%2Foh-story-claudecode&type=date&legend=top-left">
+<a href="https://www.star-history.com/?repos=qin1473692580-ux%2Foh-story-claudecode&type=date&legend=top-left">
  <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=worldwonderer/oh-story-claudecode&type=date&theme=dark&legend=top-left" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=worldwonderer/oh-story-claudecode&type=date&legend=top-left" />
-   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=worldwonderer/oh-story-claudecode&type=date&legend=top-left" />
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=qin1473692580-ux/oh-story-claudecode&type=date&theme=dark&legend=top-left" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=qin1473692580-ux/oh-story-claudecode&type=date&legend=top-left" />
+   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=qin1473692580-ux/oh-story-claudecode&type=date&legend=top-left" />
  </picture>
 </a>
 
@@ -393,9 +393,8 @@ Agent 按需加载 `references/` 中的写作理论（角色设计、对话技�
 
 ## 交流
 
-- **Telegram 群**：<https://t.me/ohstoryclaudecode> —— 日常交流、踩坑、新功能讨论。
-- **GitHub Discussions**：[提问 / 求助 / 分享用法](https://github.com/worldwonderer/oh-story-claudecode/discussions)，方便检索。
-- **微信公众号**：AI马内 —— 微信搜索关注，获取本仓库改造实战与更新动态。
+- **GitHub Discussions**：[提问 / 求助 / 分享用法](https://github.com/qin1473692580-ux/oh-story-claudecode/discussions)，方便检索。
+- **微信公众号**：AI马内 —— 微信搜索关注，后台留言加我微信。
 
 ## 致谢
 
