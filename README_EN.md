@@ -106,18 +106,18 @@ flowchart LR
 **Option 1** Tell Claude Code / OpenCode / ZCode / OpenClaw / Codex, or another Web AI / agent platform that can import a GitHub repo or skill:
 
 ```
-Install this skill https://github.com/worldwonderer/oh-story-claudecode
+Install this skill https://github.com/qin1473692580-ux/oh-story-claudecode
 ```
 
 **Option 2** Command line:
 
 ```bash
-npx skills add worldwonderer/oh-story-claudecode -y -g
+npx skills add qin1473692580-ux/oh-story-claudecode -y -g
 ```
 
 `-g` installs globally (available in every directory); drop `-g` to install only into the current directory. Re-run the same command to update.
 
-> After updating, if a project has already run `/story-setup`, re-run `/story-setup` from the project root to sync hooks / agents / references. Per-version changes are in [CHANGELOG.md](CHANGELOG.md) and [Releases](https://github.com/worldwonderer/oh-story-claudecode/releases).
+> After updating, if a project has already run `/story-setup`, re-run `/story-setup` from the project root to sync hooks / agents / references. Per-version changes are in [CHANGELOG.md](CHANGELOG.md) and [Releases](https://github.com/qin1473692580-ux/oh-story-claudecode/releases).
 >
 
 > **Codex users:** Use it in-place: Codex scans `$REPO_ROOT/.agents/skills` (a symlink to `skills/`) and discovers all 13 skills; invoke via `$story`, `$story-setup`, or `/skills`. On Windows, enable git `core.symlinks=true` or the symlink breaks — then use the `$story-setup` deployment below.
@@ -364,7 +364,7 @@ Each skill includes a `references/` knowledge base loaded on demand to keep cont
 
 **Short-form** Zhihu Yanayan (知乎盐言故事) · Fanqie Short-form (番茄短篇) · Qimao Short-form (七猫短篇)
 
-Real output samples are in [demo/](demo/): short-form deconstruction 《曾将爱意私藏》 · long-form deconstruction 《盘龙》 · long-form continuation project 《让你管账号，你高燃混剪炸全网》 · cover sample 《剑道独尊》.
+Real output sample: the long-form novel [财阀除名那晚，古井给我递了药方](https://fanqienovel.com/page/7661645008545516606) (serializing on 番茄小说, by 星河上人, produced end-to-end with this repo's story-long-write). `demo/` also has a few capability walkthroughs (cover generation / long-form deconstruction / short-form deconstruction / import-and-continue) built on publicly published works or sample data, illustrating each skill's output shape — they are not this repo maintainer's own output.
 
 I built this skill pack to help me through a job-hunting transition :joy:, and I hope it can help others too.
 

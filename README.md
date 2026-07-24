@@ -107,13 +107,13 @@ flowchart LR
 **方式一** 直接告诉 Claude Code / OpenCode / ZCode / OpenClaw / Codex，或其他支持导入 GitHub 仓库/skill 的 Web AI / Agent 平台：
 
 ```
-安装这个 skill https://github.com/worldwonderer/oh-story-claudecode
+安装这个 skill https://github.com/qin1473692580-ux/oh-story-claudecode
 ```
 
 **方式二** 命令行：
 
 ```bash
-npx skills add worldwonderer/oh-story-claudecode -y -g
+npx skills add qin1473692580-ux/oh-story-claudecode -y -g
 ```
 
 `-g` 全局安装，所有目录可用；去掉 `-g` 则只装到当前目录。更新时重新执行同一条命令即可。
@@ -132,7 +132,7 @@ npx skills add worldwonderer/oh-story-claudecode -y -g
 >
 > **Web AI / 通用 Agent 用户：** 平台能读取 GitHub 仓库或项目文件时，可让 Agent 读取 `skills/*/SKILL.md` 与对应 `references/`；需要本地副本时，`story-setup` 可选 `target_cli=generic`，只写通用 `AGENTS.md` 和 `skills/`。无本项目 hooks/custom agents 的环境按 skill 内软约束或 solo/direct fallback 执行。
 >
-> 升级后如果项目里已经跑过 `/story-setup`，建议在项目根重跑一次 `/story-setup`，同步 hooks / agents / references。每版变更见 [CHANGELOG.md](CHANGELOG.md) 与 [Releases](https://github.com/worldwonderer/oh-story-claudecode/releases)。
+> 升级后如果项目里已经跑过 `/story-setup`，建议在项目根重跑一次 `/story-setup`，同步 hooks / agents / references。每版变更见 [CHANGELOG.md](CHANGELOG.md) 与 [Releases](https://github.com/qin1473692580-ux/oh-story-claudecode/releases)。
 
 > **多 agent 协作要先部署再新开会话**：7 个专业 agent（story-architect、narrative-writer、consistency-checker 等）由 `/story-setup` 写入项目 `.claude/agents/`，或由 `$story-setup` 写入 `.codex/agents/*.toml`。Claude Code / Codex 都在会话启动时更稳定地注册 custom agent；ZCode 3.3.4、OpenClaw Phase 1、Reasonix Phase 1 与 generic 路径默认走 skills + solo fallback。判断是否生效：新会话里跑 `/story-review`，报告头是 `Effective Mode: full/lean` 即注册成功，是 `Fallback: ... -> solo` 说明当前运行时未暴露该 agent。
 
@@ -373,7 +373,7 @@ Agent 按需加载 `references/` 中的写作理论（角色设计、对话技�
 
 **短篇** 知乎盐言故事 · 番茄短篇 · 七猫短篇
 
-真实产出样例见 [demo/](demo/)：短篇拆文《曾将爱意私藏》· 长篇拆文《盘龙》· 长篇续写工程《让你管账号，你高燃混剪炸全网》· 封面《剑道独尊》示例图。
+真实产出样例：长篇《[财阀除名那晚，古井给我递了药方](https://fanqienovel.com/page/7661645008545516606)》（番茄小说连载中，星河上人 著，全流程用本仓库的 story-long-write 完成）。`demo/` 目录下另有几组能力演示（封面生成 / 长篇拆文 / 短篇拆文 / 导入续写），用的是公开发表作品或示例数据，用于说明各 skill 的输出结构，不代表本仓库维护者的实际产出。
 
 这套 skill 现在能让我度过找工作的过渡期 :joy:，希望也能帮到有需要的朋友。
 
