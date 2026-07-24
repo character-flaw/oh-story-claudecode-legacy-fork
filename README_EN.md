@@ -1,4 +1,4 @@
-<!-- Last synced with README.md: 2026-07-11 -->
+<!-- Last synced with README.md: 2026-07-22 -->
 
 **English** | [中文](README.md)
 
@@ -181,6 +181,7 @@ demo/拆文库-盘龙/
 │   ├── 林雷.md           # Protagonist full profile
 │   ├── 霍格.md           # Core supporting
 │   ├── 希尔曼.md         # Core supporting
+│   ├── 希里.md           # Core supporting
 │   ├── 德林柯沃特.md      # Core supporting
 │   ├── 沃顿.md           # Functional character
 │   └── 角色关系.md        # Relationship network
@@ -257,7 +258,7 @@ Agents load writing theory from `references/` on demand (character design, dialo
 
 ## Automation Hooks
 
-7 hooks deployed automatically by `/story-setup`:
+8 hooks deployed automatically by `/story-setup`:
 
 | Hook | Trigger | Function |
 |:-----|:---------|:---------|
@@ -268,6 +269,7 @@ Agents load writing theory from `references/` on demand (character design, dialo
 | post-compact.sh | After context compaction | Prompt to read progress snapshot for context recovery |
 | validate-story-commit.sh | git commit | Check hardcoded attributes, setting required fields (warning only, non-blocking) |
 | guard-outline-before-prose.sh | Before writing prose (Write/Edit) | Blocks first creation of a chapter/story body when its 细纲/小节大纲 is missing (blocking) — enforces outline-first |
+| check-prose-after-write.sh | After prose is written (PostToolUse: Write/Edit/MultiEdit) | Deterministic backstop scan for toxic AI phrasings / truncation / AI self-reference (advisory, non-blocking) — this is the v0.7.0 "toxic-phrase debt gate" mechanism |
 
 ## Project File Structure
 

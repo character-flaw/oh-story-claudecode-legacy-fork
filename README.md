@@ -188,6 +188,7 @@ demo/拆文库-盘龙/
 │   ├── 林雷.md           # 主角完整档案
 │   ├── 霍格.md           # 核心配角
 │   ├── 希尔曼.md         # 核心配角
+│   ├── 希里.md           # 核心配角
 │   ├── 德林柯沃特.md      # 核心配角
 │   ├── 沃顿.md           # 功能角色
 │   └── 角色关系.md        # 关系网络
@@ -264,7 +265,7 @@ Agent 按需加载 `references/` 中的写作理论（角色设计、对话技�
 
 ## 自动化 Hooks
 
-`/story-setup` 部署后自动生效的 7 个 hook：
+`/story-setup` 部署后自动生效的 8 个 hook：
 
 | Hook | 触发时机 | 功能 |
 |:-----|:---------|:-----|
@@ -275,6 +276,7 @@ Agent 按需加载 `references/` 中的写作理论（角色设计、对话技�
 | post-compact.sh | 上下文压缩后 | 提示读取进度快照恢复上下文 |
 | validate-story-commit.sh | git commit 时 | 检查硬编码属性、设定必填字段（仅警告，不阻断） |
 | guard-outline-before-prose.sh | 写正文前（Write/Edit） | 缺对应细纲/小节大纲时阻止首次创建正文（阻断），强制先搭大纲 |
+| check-prose-after-write.sh | 正文落盘后（PostToolUse: Write/Edit/MultiEdit） | 确定性毒句式/截断/AI自指等硬信号兜底扫描（advisory，不阻断），即 v0.7.0 提到的"毒句式欠账门"机制 |
 
 ## 项目文件结构
 
