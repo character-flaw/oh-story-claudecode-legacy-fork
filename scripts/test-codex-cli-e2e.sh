@@ -53,7 +53,10 @@ python3 - "$TMP_ROOT/prompt-input.json" "$WORKSPACE" "$EXPECTED_COUNT" <<'PY'
 import json
 import re
 import sys
-import tomllib
+try:
+    import tomllib
+except ModuleNotFoundError:
+    import tomli as tomllib
 from pathlib import Path
 
 output_path = Path(sys.argv[1])

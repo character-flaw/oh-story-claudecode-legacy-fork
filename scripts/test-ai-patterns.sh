@@ -81,7 +81,8 @@ fi
 node - "$OUT" <<'NODE'
 const fs = require('fs');
 const report = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
-const excerpts = report.findings.map((finding) => finding.excerpt);
+const actionable = report.findings.filter((finding) => finding.severity !== 'info');
+const excerpts = actionable.map((finding) => finding.excerpt);
 
 // Genuine flips that MUST be detected: 而是 / “，是” / compact / “；是” / hard-stop + 是.
 const expected = [
@@ -111,8 +112,8 @@ const forbidden = [
   '是呢',
 ];
 
-if (report.findings.length !== expected.length) {
-  throw new Error(`expected ${expected.length} findings, got ${report.findings.length}: ${JSON.stringify(excerpts)}`);
+if (actionable.length !== expected.length) {
+  throw new Error(`expected ${expected.length} actionable findings, got ${actionable.length}: ${JSON.stringify(excerpts)}`);
 }
 
 for (const excerpt of expected) {
@@ -163,12 +164,13 @@ fi
 node - "$OUT" <<'NODE'
 const fs = require('fs');
 const report = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
-const counts = report.findings.reduce((m, f) => ((m[f.type] = (m[f.type] || 0) + 1), m), {});
+const actionable = report.findings.filter((finding) => finding.severity !== 'info');
+const counts = actionable.reduce((m, f) => ((m[f.type] = (m[f.type] || 0) + 1), m), {});
 
 // Exactly one of each new prose type, nothing else. The 6 dialogue lines must NOT
 // trip 碎句号 (成片短句是对话/弹幕的正常形态 — only narrative runs count).
-if (report.findings.length !== 3) {
-  throw new Error(`expected 3 prose findings, got ${report.findings.length}: ${JSON.stringify(report.findings.map((f) => `${f.type}@${f.line}`))}`);
+if (actionable.length !== 3) {
+  throw new Error(`expected 3 actionable prose findings, got ${actionable.length}: ${JSON.stringify(actionable.map((f) => `${f.type}@${f.line}`))}`);
 }
 for (const type of ['period-stutter', 'em-dash', 'long-paragraph']) {
   if (counts[type] !== 1) throw new Error(`expected exactly 1 ${type}, got ${counts[type] || 0}`);
@@ -232,9 +234,10 @@ set -e
 node - "$OUT" <<'NODE'
 const fs = require('fs');
 const r = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
-if (!r.findings.length) throw new Error('expected long-paragraph finding');
-if (!r.findings.every((f) => f.severity === 'advisory')) {
-  throw new Error('long-paragraph-only fixture 应全为 advisory: ' + JSON.stringify(r.findings.map((f) => f.severity)));
+const actionable = r.findings.filter((finding) => finding.severity !== 'info');
+if (!actionable.length) throw new Error('expected long-paragraph finding');
+if (!actionable.every((f) => f.severity === 'advisory')) {
+  throw new Error('long-paragraph-only fixture 的可操作项应全为 advisory: ' + JSON.stringify(actionable.map((f) => f.severity)));
 }
 NODE
 [ "$adv_all" -eq 1 ] || { echo "FAIL: advisory-only 默认 --fail-on=all 应退出 1，实际 $adv_all" >&2; exit 1; }
@@ -900,7 +903,7 @@ const lc = r.findings.filter((f) => f.type === 'low-connective-density-tic');
 if (lc.length !== 0) throw new Error('全部引号对都应剥离，不应触发 low-connective-density-tic: ' + JSON.stringify(lc));
 NODE
 
-# 单纯功能词/白话连接偏低，但中长承接句充足时不报；这是《盘龙》人工窗口误报反例的保护条件。
+# 单纯功能词/白话连接偏低，但中长承接句充足时不报；这是长篇真人语料误报反例的保护条件。
 FIXTURE28="$TMP_DIR/fixture-low-connective-long-sentences.md"
 : > "$FIXTURE28"
 for _ in $(seq 1 30); do
@@ -1000,7 +1003,7 @@ echo "reverse-not-is (反序对比腔) regression tests passed."
 
 # --- 实战漏网 D：trailer-ending（预告式总结收尾，仅文末 600 字窗口，blocking）---
 # 反例：窗口外叙述里的「没人知道」（line 1）、窗口内对话里的「没人知道」、
-# 真人语料报幕句「比赛正式拉开序幕」（《万疆》第120章原句式）。
+# 真人语料报幕句「比赛正式拉开序幕」。
 FIXTURE_TRAILER="$TMP_DIR/fixture-trailer-ending.md"
 printf '%s\n' '他把口琴收进兜里。没人知道他练了多久。' > "$FIXTURE_TRAILER"
 for _ in $(seq 1 16); do
@@ -1060,7 +1063,7 @@ if (!qe[0].excerpt.includes('把关')) throw new Error('quote-emphasis-tic excer
 NODE
 [ "$quote_emph_blk" -eq 0 ] || { echo "FAIL: quote-emphasis-tic --fail-on=blocking 应退出 0，实际 $quote_emph_blk" >&2; exit 1; }
 
-# 低于阈值（<3 处）不报：单处强调是正常修辞；含真人语料边界句（《万疆》第40章海报标语）。
+# 低于阈值（<3 处）不报：单处强调是正常修辞；含真人语料边界句（海报标语）。
 FIXTURE_QUOTE_EMPH_NORMAL="$TMP_DIR/fixture-quote-emphasis-normal.md"
 printf '%s\n' \
   '凌晨十二点十分，番城旅游官网出现苏阳的照片，手里的海报变成了“我在番城”。' \

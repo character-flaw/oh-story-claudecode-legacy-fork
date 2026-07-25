@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## 仓库净化（fork）
+
+- 移除从上游继承、并非本 fork 产出的公开样例文件及 README 展示入口。
+- 清理对已移除样例的契约校验与历史展示性描述，避免将第三方内容误认作本 fork 产出。
+- 安装后的版本检查与更新命令统一指向本 fork。
+
 ## v0.7.0 合并说明（fork）
 
 2026-07-18 将上游 v0.7.0 合并进本 fork：上游新增的 ZCode/Reasonix 适配、剧情单元统一、去AI味闸口机器化、6个新题材包（世情打脸/民俗怪谈/悬疑/甜宠/双男主/沙雕脑洞）、submission-craft 投稿层、check-ai-patterns 6个新检测器全部并入；fork 侧的 check-typos.js 错别字校验、现实共鸣型/悬疑脑洞型两个题材包（题材包升至12个）、对话密度统计、反转规则消歧全部保留。此前 fork 自编的 v0.6.22~v0.6.24 版本号与上游撞号，已重标为 v0.6.22-fork~v0.6.24-fork（见下），此后 fork 版本一律带 -fork 后缀避免混淆。
@@ -121,7 +127,7 @@ All notable changes to this project will be documented in this file.
 
 ### 新增
 
-- **对标节奏迁移（#198）**：对标书拆出的 `剧情/节奏.md` 过去只喂 Phase4 逐章文风、从不回流卷级结构；新增「一级结构=对标书剧情单元 + 关键点法 + 对标节奏迁移 M1-M5」（`outline-structure-theory.md`），卷纲模板加「对标结构坐标」表，Phase3 卷纲定稿前读对标节奏回流（按归一化关键点 1/4·中点·3/4 换素材排进本卷，保留情绪链+功能位、禁照搬桥段，并比对「不建议模仿」就地修正对标硬伤）。缺 `节奏.md`/`情绪模块.md` 时走 `章节摘要 + 拆文报告` 降级路径（多数真实拆文库都缺，已在 盘龙拆文库 端到端验证）。
+- **对标节奏迁移（#198）**：对标书拆出的 `剧情/节奏.md` 过去只喂 Phase4 逐章文风、从不回流卷级结构；新增「一级结构=对标书剧情单元 + 关键点法 + 对标节奏迁移 M1-M5」（`outline-structure-theory.md`），卷纲模板加「对标结构坐标」表，Phase3 卷纲定稿前读对标节奏回流（按归一化关键点 1/4·中点·3/4 换素材排进本卷，保留情绪链+功能位、禁照搬桥段，并比对「不建议模仿」就地修正对标硬伤）。缺 `节奏.md`/`情绪模块.md` 时走 `章节摘要 + 拆文报告` 降级路径（已用长篇结构化样本完成端到端验证）。
 - **章节定位与张弛，破「每章像短篇」（#198）**：顶层「每章一视同仁——钩子+爽点+悬念」逼模型把关系/铺垫/过场章都写成强钩子短篇；改为按章在一级结构里的位置分六型定位（高压/推进/修炼试错/关系回收/低压生活/信息整理），低压/关系/过场章允许无显性爽点、弱钩子，但每章保留往下看的理由（番茄追读红线），并加「禁情绪母题扎堆」底线（连续多章同母题才是真正疲劳源）。定位可留空=退化为推进章，非硬配额、非新教条；压力级=爆发烈度，与情绪强度分两轴；占比按题材分档（番茄短平快高压可到 30%+）。SKILL.md 大纲四检升五检、顶层质量要求/爽点密度/step9/三处 QA 按定位放宽，story-architect spawn 注入「章节定位契约」，并修复 `agent-references/quality-checklist.md` 漏同步（deployed agent 审查时实读）。盲评（同一新章按旧/新规则各写一版正文）：旧版判「工业爽文/每章必须钩子的流水线产物」，新版「关系章作者型写法」，编辑判定新版明显更适合高潮后呼吸位；字数预算 Σ∈[章目标,×1.1] 契约不动，关系回收章加「≥1情感密点」更严下限。
 
 ### 发布准备
@@ -242,7 +248,7 @@ All notable changes to this project will be documented in this file.
 
 ## v0.6.15
 
-> 拆文 demo 全量重做（盘龙长篇 / 曾将爱意私藏短篇）+ 新增 story-import 长篇续写工程 demo · story-import 框架修正（交付物＝写作工程，移除 `[导入反推]`）· 拆文契约/门控补强 · story-deslop/story-review 标点规范化（盐言「」保持有效）
+> story-import 框架修正（交付物＝写作工程，移除 `[导入反推]`）· 拆文契约/门控补强 · story-deslop/story-review 标点规范化（盐言「」保持有效）
 
 ### 改进
 
@@ -255,12 +261,6 @@ All notable changes to this project will be documented in this file.
 ### Bug 修复
 
 - **标点引导纠偏（Issue #133）**：`story-deslop` / `story-review` 各自内置确定性 破折号/分隔线 规范化器 `normalize-punctuation.js`（skill 内复制一份、不跨 skill 引用）；盐言短篇「」引号保持有效、不被全局判错；写作 references 的 prompt 示例去掉「把 em-dash 节奏当首选散文模式」的教学。
-
-### Demo 与文档
-
-- **拆文 demo 按新契约全量重做**：`demo/拆文库-盘龙`（长篇拆文）、`demo/拆文库-曾将爱意私藏`（短篇拆文，替换原文缺失的「影子拳手」demo）。
-- **新增 story-import 长篇续写工程 demo**：`demo/让你管账号，你高燃混剪炸全网`——番茄前 20 章逆向重建为可续写工程（正文 / 设定 / 大纲 / 追踪 / 参考资料），可直接 `/story-long-write` 日更续写第 21 章。
-- **README / README_EN**：新增三个 demo 展示块（短篇拆文 / 长篇拆文 / 长篇续写工程）+ 交流群与 Discussions 链接（#131）。
 
 ### 工程
 
@@ -398,7 +398,7 @@ All notable changes to this project will be documented in this file.
 
 - 修复 story-long-analyze 情节点下限漂移导致短章被过细切（路由层 3，校验层 10）。
 - 修复 chapter-extractor 两份模板内容已经悄悄不一致（一份说「输出对齐 output-templates.md」，另一份说「不依赖外部模板」）。
-- 修复章节正则 `第[一二三四五六七八九十百零0-9]+章` 对 1000+ 章长篇（盘龙 / 诡秘之主等）匹配失败的截断问题。
+- 修复章节正则 `第[一二三四五六七八九十百零0-9]+章` 对 1000+ 章长篇匹配失败的截断问题。
 - 修复 story-long-write 日更循环读 `设定/金手指.md 或 世界观.md` 的扁平路径——拆文产物已经按主题拆到子目录后，这条扁平读取会 ENOENT 静默失败。
 - 修复 story-deslop 英文触发词 `deslop` 与 `/oh-my-claudecode:ai-slop-cleaner` 冲突——删除该触发词避免误路由。
 - 修复 story-deslop 综合判定规则 off-by-one：「五项 → 六项」（评估表实际包含 6 个指标）。
@@ -480,7 +480,7 @@ All notable changes to this project will be documented in this file.
 
 - **story-long-analyze（长篇拆书）**：「快速 / 深度」双模式合并为单一拆解管道。「快速」不再是独立模式，而是管道跑完黄金三章（Stage 1）后的可停靠交付点——产出 `快速预览.md` 并询问是否继续全量拆解。确认后从 Stage 2 续跑，不重跑已完成阶段；`快速预览.md` 与终态 `拆文报告.md` 字段向上兼容。
 - **story-long-analyze**：文档单一事实源。质量阈值、分块策略统一归 `material-decomposition.md`；运维内容（`_progress.md` 模板、错误处理、恢复机制）拆出为独立的 `pipeline-ops.md`。
-- **story-short-analyze（短篇拆书）**：砍掉「标准 / 精细」双档，统一为单一全量拆解。双档在实操中无人遵守，连示范 demo 都没按标准模式产出。
+- **story-short-analyze（短篇拆书）**：砍掉「标准 / 精细」双档，统一为单一全量拆解。双档在实操中无人遵守，连示范产出都没按标准模式生成。
 - **story-short-analyze**：质量阈值收敛到唯一权威文件；管道阶段术语 `Phase 2-6` 对齐为 `Stage 2-6`，与长篇 Stage 体系一致；新增原文备份前置步骤。
 - 黄金三章深度拆解产物由单文件拆为三个单章文件 `第N章_深度拆解.md`。
 - 同步更新下游 skill：story-long-write、story-import、chapter-extractor agent 模板的拆书术语与文件名引用。
@@ -493,7 +493,7 @@ All notable changes to this project will be documented in this file.
 ### 验证
 
 - 长篇、短篇拆书各经独立验收，发现的问题已修复。
-- 长篇新管道用《盘龙》开篇 23 章端到端实跑，Stage 1 停靠点、断点续跑、字段向上兼容均跑通。
+- 长篇新管道用长篇结构化样本的开篇 23 章端到端实跑，Stage 1 停靠点、断点续跑、字段向上兼容均跑通。
 - 全仓旧模式术语（快速模式 / 深度模式 / 标准模式 / 精细模式 / 自检模式）零残留。
 - GitHub CI：macOS / Windows / static-check 全绿。
 
@@ -630,7 +630,6 @@ All notable changes to this project will be documented in this file.
 - 新增报应设计细分（主角设局 vs 反派自毁）、甜宠/喜剧类五维替代维度（反差萌浓度+甜度曲线）
 - 新增灵活分节说明、反转密度异常检测、BE结尾评估标准（意难平≥8）、期待感分析
 - **术语去抽象化**：清理 9 个自造词（心酸双峰/甜度阶梯/弹幕元叙事/反差萌循环/隐性反转/被动报应自循环/意象系统/二次阅读设计/称呼操控式），回归已有概念和日常描述
-- 标杆拆文 demo：《我爸死后，我成了他的影子拳手》（套娃反转式，4层嵌套+5人物+12节点情感曲线）
 
 ## v0.6.1
 

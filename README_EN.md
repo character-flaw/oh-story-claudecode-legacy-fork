@@ -1,4 +1,4 @@
-<!-- Last synced with README.md: 2026-07-22 -->
+<!-- Last synced with README.md: 2026-07-25 -->
 
 **English** | [中文](README.md)
 
@@ -6,7 +6,7 @@
 
 A web novel writing skill pack with built-in adapters for Claude Code, OpenCode, ZCode, OpenClaw, Codex CLI, Reasonix, and workbuddy. Web AI / agent environments that can read project files can use the generic skills path. Covers the full pipeline for long-form and short-form Chinese web novels: trend scanning, deconstruction, writing, AI tone removal, and cover generation.
 
-> This repo started by referencing [worldwonderer/oh-story-claudecode](https://github.com/worldwonderer/oh-story-claudecode) (MIT licensed) as its initial blueprint, and has since been independently developed, upgraded and maintained by **星河上人** — every change is distilled from real writing practice — the long-form novel [财阀除名那晚，古井给我递了药方](https://fanqienovel.com/page/7661645008545516606) (serializing on 番茄小说, by 星河上人) plus multiple 番茄 short stories, end to end, feeding lessons learned back into the tool itself instead of remembering them by hand. Upstream updates are absorbed selectively, with this repo's field-tested behavior as the source of truth.
+> This repo started by referencing [worldwonderer/oh-story-claudecode](https://github.com/worldwonderer/oh-story-claudecode) (MIT licensed) as its initial blueprint, and has since been independently developed, upgraded and maintained by **星河上人**. This fork's original changes are distilled from real writing practice: the long-form novel [财阀除名那晚，古井给我递了药方](https://fanqienovel.com/page/7661645008545516606) (serializing on 番茄小说, by 星河上人) plus multiple 番茄 short stories, end to end, feeding lessons learned back into the tool itself instead of remembering them by hand. Upstream updates are absorbed selectively, with this repo's field-tested behavior as the source of truth.
 
 ### Independently developed upgrades (distilled from real writing practice)
 
@@ -41,7 +41,7 @@ Built around four pillars: reverse-engineering hits · plot modularization · la
 >
 > Starting in v0.6.23-fork: `story-short-write` adds two genre-style packs — `现实共鸣型` (family-of-origin exploitation / workplace gaslighting counterattack / bride-price traps) and `悬疑脑洞型` (death games / rule-horror), growing the core genre set from 4 to 6. Both packs disclose their source evidence and confidence level, and explicitly distinguish their emotional register (clear-eyed retaliation / cold deductive dread) from the sob-and-scorch-earth tone of the 追妻火葬场 pack.
 >
-> Starting in v0.6.22-fork: `story-long-write` Phase 5 adds a `check-typos.js` typo checker as the first check right after a chapter is written and saved (ahead of the AI-tone/degeneration/punctuation scripts), covering a curated dictionary of high-confidence common Chinese typos; every hit is advisory and the script never rewrites the file. `质检进度.md` template gains a matching column.>
+> Starting in v0.6.22-fork: `story-long-write` Phase 5 adds a `check-typos.js` typo checker as the first check right after a chapter is written and saved (ahead of the AI-tone/degeneration/punctuation scripts), covering a curated dictionary of high-confidence common Chinese typos; every hit is advisory and the script never rewrites the file. `质检进度.md` template gains a matching column.
 > Starting in v0.6.21: short-form writing reference cleanup — `story-short-write` drops stale long-form inherited references and now uses `short-format` / `short-craft` / `short-deslop` plus four genre packs (wife-chasing crematorium, revenge face-slap, CEO/wealthy family, domestic/palace intrigue) for short-story format, direct emotion, pacing density, and AI-tone cleanup; existing deployed projects should rerun `/story-setup` and start a new session to pick up the updated narrative-writer short-story exception.
 >
 > For earlier versions, see [CHANGELOG.md](CHANGELOG.md).
@@ -73,6 +73,7 @@ flowchart LR
         direction TB
         analyze_l["Long-form Deconstruction"]:::phase
         analyze_s["Short-form Deconstruction"]:::phase
+        import_l["Existing Novel Import"]:::phase
     end
 
     subgraph S3 ["  Writing"]
@@ -95,8 +96,9 @@ flowchart LR
     analyze_s --> write_s
     entry_r -.->|Skip Prep| write_l
     entry_r -.->|Skip Prep| write_s
-    entry_i -.->|Import Existing| setup
-    setup -.->|Reverse Import| write_l
+    entry_i -.->|Setup Recommended| setup
+    setup -.->|Reverse Import| import_l
+    import_l -.->|Continue Writing| write_l
     write_l --> deslop
     write_s --> deslop
 ```
@@ -157,89 +159,6 @@ npx skills add qin1473692580-ux/oh-story-claudecode -y -g
 
 Natural language also triggers: `帮我开书` ("help me start writing") → `story-long-write`, `这篇太AI了` ("this is too AI-ish") → `story-deslop`, `把我的书导进来` ("import my book") → `story-import`, `沈栀现在什么状态` ("what's Shen Zhi's current status") → `story-explorer`.
 
-<details>
-<summary>Cover generation example</summary>
-
-![Cover example — Sword Dao Supreme](demo/封面-剑道独尊.png)
-
-</details>
-
-<details>
-<summary>Deconstruction demo — Coiling Dragon</summary>
-
-Full output from `/story-long-analyze` deep mode on the first 23 chapters of *Coiling Dragon*:
-
-```
-demo/拆文库-盘龙/
-├── 概要.md              # Novel overview + chapter index
-├── 拆文报告.md           # 5-dimension scoring + pacing analysis + takeaways
-├── 文风.md              # Benchmark voice: sentence rhythm, punctuation, dialogue subtext, emotion pacing
-├── 章节/
-│   ├── 第1章_深度拆解.md  # Golden三章 deep analysis
-│   └── 第1-23章_摘要.md   # Per-chapter summary + plot points + character mentions
-├── 角色/
-│   ├── 林雷.md           # Protagonist full profile
-│   ├── 霍格.md           # Core supporting
-│   ├── 希尔曼.md         # Core supporting
-│   ├── 希里.md           # Core supporting
-│   ├── 德林柯沃特.md      # Core supporting
-│   ├── 沃顿.md           # Functional character
-│   └── 角色关系.md        # Relationship network
-├── 剧情/
-│   ├── 故事线.md          # Framework + 4 plotlines + 2 storylines
-│   ├── 节奏.md            # Pacing + key-info progression + emotional trigger eruption rhythm
-│   └── 情绪模块.md        # Reader needs + emotional engine + reusable writing modules
-└── 设定/
-    ├── 世界观/
-    │   ├── 背景设定.md    # Core rules + special settings
-    │   ├── 力量体系.md    # Battle qi + magic + ranks
-    │   ├── 地理.md        # Andaluxia + Yulan Continent
-    │   └── 金手指.md      # Panlong Ring + Delin Cowort
-    └── 势力/
-        └── 巴鲁克家族.md  # Baluk family (dragon-blood lineage)
-```
-
-Long-form deconstruction also produces `文风.md`, plus `剧情/节奏.md` (pacing, key-info progression, emotional trigger eruption rhythm) and `剧情/情绪模块.md` (reader needs, emotional engine, reusable writing modules); daily writing consumes these through `对标/{书名}/剧情/` to keep voice, pacing, and emotion modules close to the benchmark.
-
-</details>
-
-<details>
-<summary>Deconstruction demo — Once I Hid My Love (曾将爱意私藏, short-form)</summary>
-
-`/story-short-analyze` deconstructing the short story 《曾将爱意私藏》 (~8,500 chars, win-back / "faked-death" genre):
-
-```
-demo/拆文库-曾将爱意私藏/
-├── 原文/原文.txt        # Source backup
-├── 拆文报告.md          # Story core + 5-dim scores + 6-facet payoff + cognitive reversal + 9-layer resonance
-├── 情节节点.md          # 54 plot points (source quotes + emotion markers −9~+9)
-├── 写作手法.md          # POV / dialogue / info-gap / object-hook — 11 techniques
-└── _meta.json           # structure_counts (Phase 7 gate basis)
-```
-
-Short-form deconstruction outputs `拆文报告 / 情节节点 / 写作手法`; downstream `/story-short-write` writes a new same-genre story from them.
-
-</details>
-
-<details>
-<summary>Import demo — 让你管账号，你高燃混剪炸全网 (long-form continuation project)</summary>
-
-`/story-import` reverse-builds the author's already-published first 20 chapters (~37k chars) into a continuation-ready writing project, handed off to `/story-long-write` for daily writing from chapter 21:
-
-```
-demo/让你管账号，你高燃混剪炸全网/
-├── 正文/        Chapters 001–020 (published source text)
-├── 大纲/        大纲.md · 卷纲_第1卷.md · 细纲_第001–020章.md (one file per chapter)
-├── 设定/        角色/ (6 character files) · 世界观/{background · cheat-system}
-│                关系.md · 题材定位.md · 文风.md
-├── 追踪/        伏笔.md (foreshadowing) · 时间线.md (timeline) · 角色状态.md (state) · 上下文.md
-└── 参考资料/    作品信息.md
-```
-
-Per-chapter extraction (events / characters / settings / foreshadowing / timeline) is reverse-engineered into a continuation bible, so the author seamlessly continues from chapter 21.
-
-</details>
-
 ## Agent System
 
 Writing skills internally coordinate 7 specialized agents:
@@ -258,7 +177,7 @@ Agents load writing theory from `references/` on demand (character design, dialo
 
 ## Automation Hooks
 
-8 hooks deployed automatically by `/story-setup`:
+For Claude Code projects, `/story-setup` deploys the following 8 shell hooks. Other adapters reuse the same guard logic through the events their runtimes support:
 
 | Hook | Trigger | Function |
 |:-----|:---------|:---------|
@@ -341,7 +260,7 @@ Each skill includes a `references/` knowledge base loaded on demand to keep cont
 | Character Design | Character profiles · Character extraction · Relationship mapping · Motivation chains · Ensemble casts | long-write / short-write / short-analyze |
 | Hook Techniques | 13 chapter-end hooks · 7 chapter-start hooks · Paragraph-level hooks · Suspense orchestration | long-write / short-write / short-analyze |
 | Emotion Design | 6 arc templates · Expectation management · Genre track strategies | long-write / short-write |
-| Genre Frameworks | Long-form 8-node · Short-form compressed 3-act · 8 genre opening templates | long-write / short-write / short-analyze |
+| Genre Frameworks | Long-form 8-node · Short-form compressed 3-act · 12 short-form genre style packs | long-write / short-write / short-analyze |
 | Dialogue Techniques | Rhythm · Subtext · Information control · Dialogue pattern database | long-write / short-write |
 | Twist Toolbox | Types · Timing · Misdirection base paths | long-write / short-write |
 | Style Modules | Dialogue · Combat · Mind games · Cinematic writing · Face-slapping · Plain description | long-write |
@@ -366,7 +285,7 @@ Each skill includes a `references/` knowledge base loaded on demand to keep cont
 
 **Short-form** Zhihu Yanayan (知乎盐言故事) · Fanqie Short-form (番茄短篇) · Qimao Short-form (七猫短篇)
 
-Real output sample: the long-form novel [财阀除名那晚，古井给我递了药方](https://fanqienovel.com/page/7661645008545516606) (serializing on 番茄小说, by 星河上人, produced end-to-end with this repo's story-long-write). `demo/` also has a few capability walkthroughs (cover generation / long-form deconstruction / short-form deconstruction / import-and-continue) built on publicly published works or sample data, illustrating each skill's output shape — they are not this repo maintainer's own output.
+Real output sample: the long-form novel [财阀除名那晚，古井给我递了药方](https://fanqienovel.com/page/7661645008545516606) (serializing on 番茄小说, by 星河上人, produced end-to-end with this repo's story-long-write).
 
 I built this skill pack to help me through a job-hunting transition :joy:, and I hope it can help others too.
 

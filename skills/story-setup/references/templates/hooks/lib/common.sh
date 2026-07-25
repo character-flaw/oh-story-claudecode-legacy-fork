@@ -36,7 +36,7 @@ discover_active_book() {
   if [ -f "$root/.active-book" ]; then
     local active
     # LC_ALL=C：书名是中文 UTF-8。Windows 中文系统若导出 GBK 区域设置，trim 的
-    # s/^[[:space:]]*// 会逼 sed 按 GBK 解码整行，短书名（如「让你管账号」「修仙传」）的
+    # s/^[[:space:]]*// 会逼 sed 按 GBK 解码整行，短中文书名的
     # UTF-8 字节是非法 GBK 序列 → BSD sed 报 illegal byte sequence、active 被吞成空 →
     # .active-book 被忽略、误解析到 find 到的第一本书。强制 C 区域走字节处理才稳。
     # 本库被无 export 的 session-*/pre-compact/post-compact 复用，故在此 per-command 兜底，

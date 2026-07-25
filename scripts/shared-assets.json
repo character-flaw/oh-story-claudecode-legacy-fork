@@ -29,6 +29,22 @@
       ]
     },
     {
+      "name": "prose-typo-checker",
+      "source": "skills/story-deslop/scripts/check-typos.js",
+      "targets": [
+        "skills/story-long-write/scripts/check-typos.js",
+        "skills/story-review/scripts/check-typos.js",
+        "skills/story-short-write/scripts/check-typos.js"
+      ]
+    },
+    {
+      "name": "platform-text-exporter",
+      "source": "skills/story-long-write/scripts/export-for-platform.js",
+      "targets": [
+        "skills/story-short-write/scripts/export-for-platform.js"
+      ]
+    },
+    {
       "name": "scan-cdp-utils",
       "source": "skills/story-long-scan/scripts/cdp-utils.js",
       "targets": [

@@ -25,7 +25,6 @@ EXPECTED_MANIFEST_KEYS = {
     "agents_version",
     "topic_decision_phase",
     "progress_schema_version",
-    "expected_demo_outline_count",
     "primary_benchmark_artifacts",
     "required_outline_sections",
 }
@@ -42,7 +41,6 @@ class ContractManifest:
     progress_schema_version: int
     primary_benchmark_artifacts: Tuple[str, ...]
     required_outline_sections: Tuple[Tuple[str, str], ...]
-    expected_demo_outline_count: int
 
 
 @dataclass(frozen=True)
@@ -109,12 +107,6 @@ LEGACY_RULES = (
         "short writing uses only current benchmark paths",
         r"\{短篇标题\}/拆文库/\{书名\}",
         ("skills/story-short-write",),
-    ),
-    AbsentRule(
-        "dotted-demo-workflow-label",
-        "shipped demos do not preserve dotted workflow labels",
-        r"(?:Step|Phase|Stage)\s*[0-9]+\.[0-9]+",
-        ("demo",),
     ),
     AbsentRule(
         "obsolete-topic-decision-acceptance",
@@ -231,7 +223,6 @@ def load_manifest(path: Path) -> Tuple[Optional[ContractManifest], List[Finding]
         "agents_version",
         "topic_decision_phase",
         "progress_schema_version",
-        "expected_demo_outline_count",
     ):
         if key not in raw:
             continue
@@ -259,27 +250,27 @@ def load_manifest(path: Path) -> Tuple[Optional[ContractManifest], List[Finding]
     sections = raw.get("required_outline_sections")
     valid_sections = isinstance(sections, list) and bool(sections) and all(
         isinstance(item, dict)
-        and set(item) == {"rule", "demo"}
+        and set(item) == {"rule", "outline"}
         and isinstance(item.get("rule"), str) and bool(item["rule"].strip())
-        and isinstance(item.get("demo"), str) and bool(item["demo"].strip())
+        and isinstance(item.get("outline"), str) and bool(item["outline"].strip())
         for item in sections or []
     )
     if not valid_sections:
         findings.append(
             Finding(
                 "manifest-outline-type",
-                "required_outline_sections must be an array of exact {rule, demo} string objects",
+                "required_outline_sections must be an array of exact {rule, outline} string objects",
                 path,
             )
         )
     elif (
         len({item["rule"] for item in sections}) != len(sections)
-        or len({item["demo"] for item in sections}) != len(sections)
+        or len({item["outline"] for item in sections}) != len(sections)
     ):
         findings.append(
             Finding(
                 "manifest-outline-duplicate",
-                "required_outline_sections must use unique rule and demo names",
+                "required_outline_sections must use unique rule and outline names",
                 path,
             )
         )
@@ -296,8 +287,7 @@ def load_manifest(path: Path) -> Tuple[Optional[ContractManifest], List[Finding]
         topic_decision_phase=raw["topic_decision_phase"],
         progress_schema_version=raw["progress_schema_version"],
         primary_benchmark_artifacts=tuple(artifacts),
-        required_outline_sections=tuple((item["rule"], item["demo"]) for item in sections),
-        expected_demo_outline_count=raw["expected_demo_outline_count"],
+        required_outline_sections=tuple((item["rule"], item["outline"]) for item in sections),
     )
     return manifest, []
 
@@ -663,7 +653,7 @@ def outline_rule_contract_findings(
     ]
 
 
-def extract_demo_outline_fields(text: str) -> set[str]:
+def extract_produced_outline_fields(text: str) -> set[str]:
     """Return labels declared as headings or `- field: value` entries."""
     fields: set[str] = set()
     for line in text.splitlines():
@@ -786,47 +776,6 @@ def validate_repository(repo_root: Path, manifest: ContractManifest) -> List[Fin
         outline_rule_contract_findings(outline_rule_text, manifest, outline_rule)
     )
 
-    demo_root = repo_root / "demo/拆文库-盘龙"
-    for artifact in manifest.primary_benchmark_artifacts:
-        artifact_path = demo_root / artifact
-        try:
-            has_content = artifact_path.is_file() and artifact_path.stat().st_size > 0
-        except OSError:
-            has_content = False
-        if not has_content:
-            findings.append(
-                Finding("demo-primary-artifact", "demo deconstruction is missing non-empty {}".format(artifact), artifact_path)
-            )
-
-    outline_dir = repo_root / "demo/让你管账号，你高燃混剪炸全网/大纲"
-    outlines = sorted(outline_dir.glob("细纲_第*.md"))
-    if len(outlines) != manifest.expected_demo_outline_count:
-        findings.append(
-            Finding(
-                "demo-outline-count",
-                "expected {} demo chapter outlines, found {}".format(
-                    manifest.expected_demo_outline_count, len(outlines)
-                ),
-                outline_dir,
-            )
-        )
-    for outline in outlines:
-        text = read_text(outline) or ""
-        declared_fields = extract_demo_outline_fields(text)
-        missing = [
-            demo
-            for _, demo in manifest.required_outline_sections
-            if demo not in declared_fields
-        ]
-        if missing:
-            findings.append(
-                Finding(
-                    "demo-outline-section",
-                    "demo outline is missing current blueprint sections: {}".format(", ".join(missing)),
-                    outline,
-                )
-            )
-
     for path in iter_files(repo_root / "skills"):
         if path.suffix.lower() != ".md":
             continue
@@ -885,7 +834,6 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     print("  [PASS] legacy/path guards")
     print("  [PASS] version, phase, progress, and artifact contracts")
     print("  [PASS] primary-artifact fallback semantics")
-    print("  [PASS] demo primary artifacts and {} outlines".format(manifest.expected_demo_outline_count))
     print("\nResult: all current-contract checks passed")
     return 0
 

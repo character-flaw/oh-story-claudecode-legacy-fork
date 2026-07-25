@@ -224,7 +224,7 @@ references_dir: .codex/skills/story-setup/references
 def test_structured_outline_contract() -> None:
     manifest = repository_manifest()
     rule_names = [rule for rule, _ in manifest.required_outline_sections]
-    demo_names = [demo for _, demo in manifest.required_outline_sections]
+    outline_names = [outline for _, outline in manifest.required_outline_sections]
 
     scattered_rule = "2. **细纲必填项**\n\n" + "、".join(rule_names)
     require(
@@ -248,18 +248,18 @@ def test_structured_outline_contract() -> None:
         "structured outline rule fields must pass",
     )
 
-    scattered_demo = "本章应包含：" + "、".join(demo_names)
-    declared = VALIDATOR.extract_demo_outline_fields(scattered_demo)
+    scattered_outline = "本章应包含：" + "、".join(outline_names)
+    declared = VALIDATOR.extract_produced_outline_fields(scattered_outline)
     require(
-        not set(demo_names).issubset(declared),
-        "demo names scattered in prose must not count as declared sections",
+        not set(outline_names).issubset(declared),
+        "outline names scattered in prose must not count as declared sections",
     )
-    structured_demo = "\n".join("## {}".format(name) for name in demo_names)
+    structured_outline = "\n".join("## {}".format(name) for name in outline_names)
     require(
-        set(demo_names).issubset(
-            VALIDATOR.extract_demo_outline_fields(structured_demo)
+        set(outline_names).issubset(
+            VALIDATOR.extract_produced_outline_fields(structured_outline)
         ),
-        "structured demo headings must be recognized",
+        "structured outline headings must be recognized",
     )
 
 

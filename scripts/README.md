@@ -12,7 +12,7 @@
 | `static-check.sh` + `static-check.py` | 结构化验证 frontmatter、Markdown 路径/锚点、Agent 引用、references 可达性；除基础组件 `browser-cdp` 外禁止跨 Skill 文件引用 | CI |
 | `skill-numbering.py check` | 工作流 Step/Phase/Stage 编号策略、引用绑定、SKILL.md 裸编号/子步骤小数守卫 | CI；改工作流结构后 |
 | `check-current-skill-contracts.sh` + `.py` + `current-contract.json` | 从结构化 manifest 校验当前版本、Phase、schema、主产物与细纲契约；保留 legacy/path 守卫并拦截缺主产物后的静默替代 | CI |
-| `check-shared-files.sh` | 调 `sync-shared-assets.py check` 验 runtime 副本，再验 58 组共享 reference 字节一致 | CI |
+| `check-shared-files.sh` | 调 `sync-shared-assets.py check` 验 runtime 副本，再验 59 组共享 reference 字节一致 | CI |
 | `check-story-setup-deployment.sh` | story-setup 部署/运行时回归（慢，>2min） | CI |
 | `check-hook-regex-sync.sh` | `detect-story-gaps.sh` 伏笔状态检测行为 | CI |
 | `check-hook-locale-safety.sh` | 部署 hook 在 Windows 中文 GBK 区域的字节安全 | CI |

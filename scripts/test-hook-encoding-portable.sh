@@ -145,16 +145,16 @@ else
   P2="$WORK/p2"; deploy "$P2"
   git -C "$P2" init -q; git -C "$P2" config user.email t@t.t; git -C "$P2" config user.name t
   # 中文书名作为中间目录——正是 GBK 下 bash 通配会 NOMATCH 的场景
-  BOOK="$P2/让你管账号"; mkdir -p "$BOOK/正文" "$BOOK/大纲" "$BOOK/追踪" "$BOOK/设定"
-  printf '让你管账号\n' > "$P2/.active-book"
+  BOOK="$P2/中文测试书"; mkdir -p "$BOOK/正文" "$BOOK/大纲" "$BOOK/追踪" "$BOOK/设定"
+  printf '中文测试书\n' > "$P2/.active-book"
 
   # 2a guard-outline：中文书名中间目录 + 中文通配 glob
   rg() { local ec=0; printf '{"tool_name":"Write","tool_input":{"file_path":"%s","content":"x"}}' "$1" \
     | GBK CLAUDE_PROJECT_DIR="$P2" bash "$P2/.claude/hooks/guard-outline-before-prose.sh" >/dev/null 2>&1 || ec=$?; printf '%s' "$ec"; }
-  [ "$(rg '让你管账号/正文/第1章_开端.md')" = 2 ] && pass "[GBK] guard blocks missing 细纲" || bad "[GBK] guard should block missing 细纲"
+  [ "$(rg '中文测试书/正文/第1章_开端.md')" = 2 ] && pass "[GBK] guard blocks missing 细纲" || bad "[GBK] guard should block missing 细纲"
   : > "$BOOK/大纲/细纲_第1章.md"
-  [ "$(rg '让你管账号/正文/第1章_开端.md')" = 0 ] && pass "[GBK] guard allows present 细纲 (Chinese glob)" || bad "[GBK] guard should allow present 细纲 under GBK"
-  [ "$(rg '让你管账号/正文/第001章_开端.md')" = 0 ] && pass "[GBK] guard tolerates zero-pad 第001章" || bad "[GBK] guard should tolerate 第001章 under GBK"
+  [ "$(rg '中文测试书/正文/第1章_开端.md')" = 0 ] && pass "[GBK] guard allows present 细纲 (Chinese glob)" || bad "[GBK] guard should allow present 细纲 under GBK"
+  [ "$(rg '中文测试书/正文/第001章_开端.md')" = 0 ] && pass "[GBK] guard tolerates zero-pad 第001章" || bad "[GBK] guard should tolerate zero-pad 第001章 under GBK"
 
   # 2b detect-story-gaps：正常伏笔表不误报；同时证明中文书目能被发现。
   # F001 状态用全角空格 U+3000 补白（已埋 前后各一个），守住 LC_ALL=C 下 trim 仍认全角空格。
@@ -169,7 +169,7 @@ EOF
   # 制造真实缺口（正文>10 设定<3），证明中文书目确实被遍历到（否则上面的"静默"是假阳性）
   i=1; while [ "$i" -le 11 ]; do : > "$BOOK/正文/第${i}章.md"; i=$((i+1)); done
   out2="$(cd "$P2" && GBK CLAUDE_PROJECT_DIR="$P2" bash .claude/hooks/detect-story-gaps.sh 2>&1 || true)"
-  echo "$out2" | grep -q '让你管账号' && pass "[GBK] detect-story-gaps discovers Chinese book + warns on real gap" || bad "[GBK] detect-story-gaps failed to discover Chinese book under GBK"
+  echo "$out2" | grep -q '中文测试书' && pass "[GBK] detect-story-gaps discovers Chinese book + warns on real gap" || bad "[GBK] detect-story-gaps failed to discover Chinese book under GBK"
   rm -f "$BOOK"/正文/第*章.md
 
   # 2c validate-story-commit：命中全角冒号 + 全角空格的硬编码属性（C/GBK 区域下方括号字符组
@@ -184,8 +184,8 @@ EOF
   # pre-compact/post-compact 复用的这条共享路径。确定性构造：活跃书无 追踪/正文（fallback 找
   # 不到它），诱饵书有 追踪/（fallback 只会命中诱饵）—— 修复前回 decoy、修复后回 .active-book。
   P2D="$WORK/p2d"; deploy "$P2D"
-  mkdir -p "$P2D/让你管账号/设定" "$P2D/decoy小说/追踪"
-  printf '让你管账号\n' > "$P2D/.active-book"
+  mkdir -p "$P2D/中文测试书/设定" "$P2D/decoy小说/追踪"
+  printf '中文测试书\n' > "$P2D/.active-book"
   active_path="$(cd "$P2D" && GBK CLAUDE_PROJECT_DIR="$P2D" bash -c 'source ".claude/hooks/lib/common.sh"; discover_active_book' 2>/dev/null)"
   # 字节安全断言：活跃书有 设定/、诱饵书有 追踪/；用 [ -d ] 直接 stat 字节路径，避免 basename
   # 在个别 runner 的 GBK 下改写多字节而假失败。修复前回诱饵（无 设定/），修复后回活跃书。

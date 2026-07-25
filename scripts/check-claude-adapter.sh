@@ -88,7 +88,7 @@ manifest = {
     "name": "oh-story-ci-bundle",
     "version": "0.0.0",
     "description": "Synthetic bundle for validating all oh-story skill components",
-    "author": {"name": "worldwonderer"},
+    "author": {"name": "星河上人"},
     "skills": [f"./skills/{name}" for name in names],
 }
 (root / ".claude-plugin/plugin.json").write_text(

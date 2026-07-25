@@ -281,7 +281,10 @@ fi
   || fail "Codex generator touched the destination for an invalid agent name"
 
 python3 - <<'PY'
-import tomllib
+try:
+    import tomllib
+except ModuleNotFoundError:
+    import tomli as tomllib
 from pathlib import Path
 expected = {
     'chapter-extractor', 'character-designer', 'consistency-checker',
