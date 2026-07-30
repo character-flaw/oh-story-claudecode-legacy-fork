@@ -295,6 +295,8 @@ Each skill includes a `references/` knowledge base loaded on demand to keep cont
 
 Real output sample: the long-form novel [财阀除名那晚，古井给我递了药方](https://fanqienovel.com/page/7661645008545516606) (serializing on 番茄小说, by 星河上人, produced end-to-end with this repo's story-long-write).
 
+**Example boundary:** The README lists only work owned by this repository's maintainer as an output example. External links in the acknowledgments are limited to necessary technical attribution; they do not imply example adoption, partnership endorsement, or promotional recommendation.
+
 This skill pack turns recurring problems found in real writing practice into reusable, checkable workflows.
 
 ## Star History

@@ -3,15 +3,17 @@
 # 设计原则：无缺口时完全静默，不输出任何内容，避免污染 context
 set -euo pipefail
 
-# 加载公共函数库（project_root + discover_all_books）
-source "$(dirname "$0")/lib/common.sh"
-
-# 后续 awk 解析中文伏笔表 + find/grep 中文路径。Windows 中文系统若导出 GBK 区域设置，
+# source 公共函数库之前就切到字节区域：Windows 中文系统若导出 GBK 区域设置，UTF-8 注释中
+# 恰好落在反斜杠字节上的多字节序列可能吞掉下一行，导致 common.sh 后半段函数未被定义。
+# 后续 awk 解析中文伏笔表 + find/grep 中文路径同样需要 C 区域。Windows 中文系统若导出 GBK 区域设置，
 # gawk 会把 UTF-8 状态值按 GBK 多字节解码失败，trim 和 == 比较全乱、每行误报。强制 C
 # 区域走字节匹配（UTF-8 字面量 vs UTF-8 内容字节相等）才稳定（issue #164 同类）。文末的
 # 连续性扫描内嵌 python，但它以 encoding='utf-8' 显式读文件、用 stdout.buffer 写 UTF-8 字节，
 # 不受 LC_ALL=C 影响，故仍可在顶部 export。
 export LC_ALL=C
+
+# 加载公共函数库（project_root + discover_all_books）
+source "$(dirname "$0")/lib/common.sh"
 
 ROOT=$(project_root)
 # 报告用真实换行拼接（NL），不用字面 `\n` 占位：输出端必须 printf '%s'，见文末注释。

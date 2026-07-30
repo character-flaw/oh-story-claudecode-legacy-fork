@@ -239,43 +239,43 @@ def test_sibling_bullets_do_not_lend_the_missing_condition() -> None:
 def test_undecodable_markdown_is_a_named_failure() -> None:
     """非 UTF-8 文本会让所有内容规则静默放行，必须命名报错；二进制资产照旧跳过。"""
     rule = next(
-        r for r in VALIDATOR.LEGACY_RULES if r.code == "dotted-demo-workflow-label"
+        r for r in VALIDATOR.LEGACY_RULES if r.code == "legacy-progress-branch"
     )
-    dotted = "# 流程说明\n\n旧编号：Step 1.2：旧编号标签\n"
+    legacy = "# 流程说明\n\n禁止残留：legacy_deconstruction\n"
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
-        demo = root / "demo"
-        demo.mkdir()
-        target = demo / "流程说明.md"
-        target.write_text(dotted, encoding="utf-8")
+        skills = root / "skills"
+        skills.mkdir()
+        target = skills / "流程说明.md"
+        target.write_text(legacy, encoding="utf-8")
         require(
             VALIDATOR.check_absent_rule(root, rule),
-            "UTF-8 的旧编号标签必须被内容规则拦住",
+            "UTF-8 的旧进度分支必须被内容规则拦住",
         )
-        target.write_bytes(dotted.encode("gb18030"))
+        target.write_bytes(legacy.encode("gb18030"))
         require(
             not VALIDATOR.check_absent_rule(root, rule),
             "内容规则读不出 GBK 文件，这正是需要专门扫描的原因",
         )
         require(
             "unreadable-source-file"
-            in finding_codes(VALIDATOR.undecodable_source_findings([demo])),
+            in finding_codes(VALIDATOR.undecodable_source_findings([skills])),
             "非 UTF-8 的契约文本必须是命名失败，不能静默跳过",
         )
-        target.write_text(dotted, encoding="utf-16")
+        target.write_text(legacy, encoding="utf-16")
         require(
             "unreadable-source-file"
-            in finding_codes(VALIDATOR.undecodable_source_findings([demo])),
+            in finding_codes(VALIDATOR.undecodable_source_findings([skills])),
             "UTF-16 Markdown 含 NUL，但仍是契约文本，不能伪装成二进制资产跳过",
         )
-        target.write_text(dotted, encoding="utf-8")
-        (demo / "封面.png").write_bytes(b"\x89PNG\r\n\x1a\n\xff\xfe")
+        target.write_text(legacy, encoding="utf-8")
+        (skills / "封面.png").write_bytes(b"\x89PNG\r\n\x1a\n\xff\xfe")
         # 无后缀 / 非白名单后缀的二进制（.DS_Store 之类）靠 NUL 字节识别，不能误报
-        (demo / ".DS_Store").write_bytes(b"\x00\x00\x00\x01Bud1\xff\xfe")
+        (skills / ".DS_Store").write_bytes(b"\x00\x00\x00\x01Bud1\xff\xfe")
         require(
-            not VALIDATOR.undecodable_source_findings([demo]),
+            not VALIDATOR.undecodable_source_findings([skills]),
             "二进制资产不是契约文本，必须保持静默：{}".format(
-                VALIDATOR.undecodable_source_findings([demo])
+                VALIDATOR.undecodable_source_findings([skills])
             ),
         )
 
