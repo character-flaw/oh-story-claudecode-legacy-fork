@@ -4,7 +4,7 @@
 
 网文写作 skill 包，覆盖长篇与短篇网络小说的扫榜、拆文、写作、去AI味、封面图全流程。内置适配 Claude Code、OpenCode、ZCode、OpenClaw、Codex CLI、Reasonix、workbuddy；能读取项目文件的 Web AI / Agent 环境也可按通用 skills 路径使用。
 
-> 本仓库最初参考 [worldwonderer/oh-story-claudecode](https://github.com/worldwonderer/oh-story-claudecode)（MIT 协议）的方案起步，此后由 **星河上人** 独立开发、升级和维护——本 fork 的自研改动均来自真实写作实战复盘——长篇《[财阀除名那晚，古井给我递了药方](https://fanqienovel.com/page/7661645008545516606)》（番茄小说连载中，星河上人 著）与多篇番茄短故事全流程落地：把实战中踩过的坑改回工具本身，而不是每次靠人工记住。上游后续更新按需选择性吸收，以本仓库的实战验证为准。
+> 本仓库由 **星河上人** 独立维护。早期代码基于 MIT 开源版本演进，许可与历史归属以 `LICENSE` 和 Git 记录为准；当前 README 只介绍本仓库能力与本仓库案例，不混入第三方演示项目。自研改动来自真实写作复盘——长篇《[财阀除名那晚，古井给我递了药方](https://fanqienovel.com/page/7661645008545516606)》（番茄小说连载中，星河上人 著）与多篇番茄短故事全流程落地：把实战中踩过的坑改回工具本身，而不是每次靠人工记住。
 
 ### 自研升级清单（按实战复盘沉淀）
 
@@ -32,6 +32,8 @@
 
 围绕四条线展开：爆款逆向 · 剧情模块化重组 · 上下文状态分层管理 · 人机协同。
 
+> v0.7.2 起：正文默认恢复自然逗号长句，治理“短句越多越网文”的电报体误区；细纲只规定事件与约束，不把五段式机械复刻成五段正文；章尾要求落在人物动作、画面或台词上，并新增总结式预告结尾检测。每章继续执行“收一个、变一个、开一个”，但硬反转、硬悬念和爆点按结构节点分配。新增 `/story dashboard` 本地工作台，测试仅使用中性夹具，不包含第三方小说 demo。已部署项目需重新运行 `/story-setup` 并新开会话。
+>
 > v0.7.0 起：多端适配再扩两家——ZCode 3.3.4 原生适配（仓库作 marketplace/plugin 安装，`story-setup target_cli=zcode`）与 Reasonix Phase 1（skills + 原生 plugin manifest）；hook 核统一到共享 node 核并加六端 parity 锁；长篇把「剧情条/循环卡/…」五个叫法统一为「剧情单元」并把拆书产物接入卷纲/细纲；去 AI 味闸口机器化——写后正文网自动扫描确定性毒句式，写下一章前新增「毒句式欠账门」（无状态、node 缺失放行、可用 `<!-- 去味:跳过 -->` 显式豁免）。已部署项目需重新运行 `/story-setup` 并新开会话。
 >
 > v0.6.22 起：长篇正文接入「题材正文提示卡」——32 个番茄题材的腔调卡在写作时按题材召回进写手（卡内容绝不入正文），并配套大纲边界与逐章写法公式防越界注水；短篇新增投稿层 `submission-craft`（知乎盐选/小程序/番茄三路平台基调、导语门面打磨、付费点断点设计）；全套件 skill 文档去重瘦身约 33KB；story-setup 支持 generic Web AI 部署。已部署项目需重新运行 `/story-setup` 并新开会话。
@@ -138,12 +140,18 @@ npx skills add qin1473692580-ux/oh-story-claudecode -y -g
 
 > **导入续写顺序：** 推荐先在写作项目根运行 `/story-setup`（部署 hooks/agents/AGENTS），新开/刷新会话后运行 `/story-import` 导入已有小说，再用 `/story-long-write 日更` 或 `/story-long-write 写第N章` 续写。也可以直接运行 `/story-import`；它会先检测是否已 setup，未部署时让你选择先去 setup 或继续串行导入。
 
+## 本地写作工作台
+
+在项目根运行 `/story dashboard`（Codex 用 `$story dashboard`），即可启动只监听 `127.0.0.1` 的本地工作台，浏览拆文库和写作项目、搜索文件，并安全编辑白名单文本格式。保存采用版本校验，删除需要确认；工作台不会自动暴露到局域网或公网。
+
+Dashboard 的自动化测试使用仓库内即时生成的中性夹具，不依赖、复制或展示任何第三方小说案例。
+
 ## Skills
 
 | Skill | 触发 | 说明 |
 |:------|:-----|:-----|
 | `story-setup` | `/story-setup` `$story-setup` `/准备写书` | 环境部署 · Claude/OpenCode/Codex/ZCode/OpenClaw + generic（已有配置安全合并） |
-| `story` | `/story` `$story` `/网文` | 工具箱路由 · 模糊意图自动分发到对应 skill |
+| `story` | `/story` `$story` `/网文` | 工具箱路由 · 自动分发对应 skill，并可启动本地 Dashboard |
 | `story-long-write` | `/story-long-write` `/写长篇` | 长篇写作 · 大纲搭建、人物设定、正文输出 |
 | `story-long-analyze` | `/story-long-analyze` | 长篇拆文 · 黄金三章、爽点设计、节奏分析 |
 | `story-long-scan` | `/story-long-scan` | 长篇扫榜 · 起点/番茄/晋江市场趋势 |
@@ -162,7 +170,7 @@ npx skills add qin1473692580-ux/oh-story-claudecode -y -g
 - 「帮我开书」→ `story-long-write`
 - 「这篇太 AI 了」→ `story-deslop`
 - 「把我的书导进来」→ `story-import`
-- 「沈栀现在什么状态」→ 自动 spawn `story-explorer` agent
+- 「林晚现在什么状态」→ 自动 spawn `story-explorer` agent
 
 ## Agent 体系
 
@@ -207,8 +215,8 @@ Claude Code 项目经 `/story-setup` 部署后会启用下列 8 个 shell hook�
 {书名}/
 ├── 设定/
 │   ├── 世界观/          # 背景、力量体系等，按主题拆文件
-│   ├── 角色/            # 每个人物一个文件（沈栀.md、陆衍止.md）
-│   ├── 势力/            # 每个势力/组织一个文件（天机阁.md）
+│   ├── 角色/            # 每个人物一个文件（林晚.md、周砚.md）
+│   ├── 势力/            # 每个势力/组织一个文件（观星司.md）
 │   ├── 关系.md          # 角色关系映射
 │   └── 题材定位.md      # 题材核心梗+对标分析
 ├── 大纲/
@@ -294,7 +302,7 @@ Claude Code 项目经 `/story-setup` 部署后会启用下列 8 个 shell hook�
 
 真实产出样例：长篇《[财阀除名那晚，古井给我递了药方](https://fanqienovel.com/page/7661645008545516606)》（番茄小说连载中，星河上人 著，全流程用本仓库的 story-long-write 完成）。
 
-这套 skill 现在能让我度过找工作的过渡期 :joy:，希望也能帮到有需要的朋友。
+这套 skill 的目标是把真实创作中反复踩到的坑沉淀成可复用、可检查的写作流程。
 
 ## Star History
 
@@ -313,7 +321,7 @@ Claude Code 项目经 `/story-setup` 部署后会启用下列 8 个 shell hook�
 ## 交流
 
 - **GitHub Discussions**：[提问 / 求助 / 分享用法](https://github.com/qin1473692580-ux/oh-story-claudecode/discussions)，方便检索。
-- **微信公众号**：AI马内 —— 微信搜索关注，后台留言加我微信。
+- **微信公众号**：星河上人维护的「AI马内」—— 微信搜索关注，后台留言交流。
 
 ## 致谢
 

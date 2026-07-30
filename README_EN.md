@@ -6,7 +6,7 @@
 
 A web novel writing skill pack with built-in adapters for Claude Code, OpenCode, ZCode, OpenClaw, Codex CLI, Reasonix, and workbuddy. Web AI / agent environments that can read project files can use the generic skills path. Covers the full pipeline for long-form and short-form Chinese web novels: trend scanning, deconstruction, writing, AI tone removal, and cover generation.
 
-> This repo started by referencing [worldwonderer/oh-story-claudecode](https://github.com/worldwonderer/oh-story-claudecode) (MIT licensed) as its initial blueprint, and has since been independently developed, upgraded and maintained by **星河上人**. This fork's original changes are distilled from real writing practice: the long-form novel [财阀除名那晚，古井给我递了药方](https://fanqienovel.com/page/7661645008545516606) (serializing on 番茄小说, by 星河上人) plus multiple 番茄 short stories, end to end, feeding lessons learned back into the tool itself instead of remembering them by hand. Upstream updates are absorbed selectively, with this repo's field-tested behavior as the source of truth.
+> This repository is independently maintained by **星河上人**. Its early code evolved from MIT-licensed open-source work; licensing and historical attribution remain available in `LICENSE` and the Git history. This README documents only this repository's capabilities and its own examples, without importing third-party demo projects. The original enhancements come from end-to-end writing practice on [财阀除名那晚，古井给我递了药方](https://fanqienovel.com/page/7661645008545516606) and multiple Fanqie short stories.
 
 ### Independently developed upgrades (distilled from real writing practice)
 
@@ -33,6 +33,8 @@ Professional authors follow a three-step method:
 
 Built around four pillars: reverse-engineering hits · plot modularization · layered state management · human-AI collaboration.
 
+> Starting in v0.7.2: prose defaults return to natural comma-linked sentences instead of rewarding telegraphic fragments; outlines specify events and constraints without forcing prose to mirror the outline's shape; chapter endings land on a concrete action, image, or line of dialogue, with a new summary-trailer detector. Chapters still follow “pay one off, change one state, open one next step,” while hard twists and cliffhangers are reserved for structural nodes. `/story dashboard` adds a local workspace whose tests use neutral generated fixtures rather than third-party demos. Existing projects should rerun `/story-setup` and start a new session.
+>
 > Starting in v0.7.0: two more runtimes — native ZCode 3.3.4 (install the repo as a marketplace/plugin, `story-setup target_cli=zcode`) and Reasonix Phase 1 (skills + native plugin manifest); hook cores unified onto a shared node core with a six-runtime parity lock; long-form unifies the five old names (plot-strand / loop-card / …) into "剧情单元" (plot unit) and feeds decomposition output into volume/chapter outlines; the anti-AI-tone gate is now mechanized — the post-write prose net auto-scans deterministic toxic phrasings, and a "toxic-phrase debt gate" blocks the next chapter until the previous one is cleared (stateless, node-missing fails open, opt out explicitly with `<!-- 去味:跳过 -->`). Deployed projects should rerun `/story-setup` and start a new session.
 >
 > Starting in v0.6.22: long-form prose gains per-genre "prose prompt cards" — 32 番茄-genre voice cards recalled into the writer at draft time (card text never leaks into prose), plus outline-boundary and per-chapter formula gates against padding; short-form adds a submission layer `submission-craft` (Zhihu Yanxuan / mini-program / Fanqie platform tones, lead-in polish, paywall breakpoint design); suite-wide skill docs deduplicated by ~33KB; story-setup adds generic Web AI deployment. Deployed projects should rerun `/story-setup` and start a new session.
@@ -137,12 +139,18 @@ npx skills add qin1473692580-ux/oh-story-claudecode -y -g
 
 > **Multi-agent collaboration needs setup + a fresh session**: the 7 specialist agents (story-architect, narrative-writer, consistency-checker, etc.) are written into your project's `.claude/agents/` by `/story-setup`, or into `.codex/agents/*.toml` by `$story-setup`. Claude Code and Codex register custom agents most reliably at session start; ZCode 3.3.4, OpenClaw Phase 1, Reasonix Phase 1, and the generic path default to skills + solo fallback. To check Claude/Codex agents: run `/story-review` in the new session — `Effective Mode: full/lean` means agents registered, `Fallback: ... -> solo` means they are unavailable.
 
+## Local Writing Dashboard
+
+Run `/story dashboard` (use `$story dashboard` in Codex) from a project root to start a local-only workspace on `127.0.0.1`. It browses deconstruction libraries and writing projects, searches files, and safely edits allow-listed text formats with version-checked saves and confirmed deletion.
+
+Dashboard tests generate neutral fixtures at runtime; they do not copy, display, or depend on any third-party novel demo.
+
 ## Skills
 
 | Skill | Trigger | Description |
 |:------|:--------|:------------|
 | `story-setup` | `/story-setup` / `$story-setup` | Environment setup — Claude/OpenCode/Codex/ZCode/OpenClaw plus generic (safe merge) |
-| `story` | `/story` / `$story` | Toolbox router — routes fuzzy intents to the matching skill |
+| `story` | `/story` / `$story` | Toolbox router — routes intents and launches the local Dashboard |
 | `story-long-write` | `/story-long-write` | Long-form writing — outline building, character design, prose output |
 | `story-long-analyze` | `/story-long-analyze` | Long-form deconstruction — Golden First 3 Chapters, payoff design, pacing analysis |
 | `story-long-scan` | `/story-long-scan` | Long-form trend scan — Qidian/Fanqie/Jinjiang market trends |
@@ -157,7 +165,7 @@ npx skills add qin1473692580-ux/oh-story-claudecode -y -g
 
 > `story-deslop` uses local prose linting: blocking applies only to deterministic style/punctuation issues, while other findings require read-through judgment; external detectors such as Zhuque are self-check references, not replacements for human review.
 
-Natural language also triggers: `帮我开书` ("help me start writing") → `story-long-write`, `这篇太AI了` ("this is too AI-ish") → `story-deslop`, `把我的书导进来` ("import my book") → `story-import`, `沈栀现在什么状态` ("what's Shen Zhi's current status") → `story-explorer`.
+Natural language also triggers: `帮我开书` ("help me start writing") → `story-long-write`, `这篇太AI了` ("this is too AI-ish") → `story-deslop`, `把我的书导进来` ("import my book") → `story-import`, `林晚现在什么状态` ("what's Shen Zhi's current status") → `story-explorer`.
 
 ## Agent System
 
@@ -287,7 +295,7 @@ Each skill includes a `references/` knowledge base loaded on demand to keep cont
 
 Real output sample: the long-form novel [财阀除名那晚，古井给我递了药方](https://fanqienovel.com/page/7661645008545516606) (serializing on 番茄小说, by 星河上人, produced end-to-end with this repo's story-long-write).
 
-I built this skill pack to help me through a job-hunting transition :joy:, and I hope it can help others too.
+This skill pack turns recurring problems found in real writing practice into reusable, checkable workflows.
 
 ## Star History
 
@@ -306,7 +314,7 @@ Contributions are welcome — new skills, knowledge base additions, market data 
 ## Community
 
 - **GitHub Discussions**: [ask questions, get help, share workflows](https://github.com/qin1473692580-ux/oh-story-claudecode/discussions).
-- **WeChat Official Account** (Chinese): search "AI马内" on WeChat — leave a message in the account to get in touch on personal WeChat.
+- **WeChat Official Account** (Chinese): "AI马内", maintained by 星河上人.
 
 ## Acknowledgments
 

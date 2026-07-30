@@ -14,6 +14,8 @@ source "$(dirname "$0")/lib/common.sh"
 export LC_ALL=C
 
 ROOT=$(project_root)
+# 报告用真实换行拼接（NL），不用字面 `\n` 占位：输出端必须 printf '%s'，见文末注释。
+NL=$'\n'
 OUTPUT=""
 HAS_WARNINGS=false
 
@@ -36,16 +38,20 @@ for BOOK_DIR in "${BOOK_DIRS[@]}"; do
   # 2. 正文多但设定少
   CHAPTER_COUNT=0
   SETTING_COUNT=0
+  # `|| true` + 数字兜底不能省：子目录不可读时 find 会退 1，pipefail 把它变成整条管道的
+  # 退出码，set -e 就在这里终止脚本——OUTPUT 到文末才 flush，所有警告连 stderr 一起丢光。
   if [ -d "$BOOK_DIR/正文" ]; then
-    CHAPTER_COUNT=$(find "$BOOK_DIR/正文" -name "*.md" 2>/dev/null | wc -l | tr -d ' ')
+    CHAPTER_COUNT=$(find "$BOOK_DIR/正文" -name "*.md" 2>/dev/null | wc -l | tr -d ' ' || true)
+    case "$CHAPTER_COUNT" in ''|*[!0-9]*) CHAPTER_COUNT=0 ;; esac
   elif [ -f "$BOOK_DIR/正文.md" ]; then
     CHAPTER_COUNT=1
   fi
   if [ -d "$BOOK_DIR/设定" ]; then
-    SETTING_COUNT=$(find "$BOOK_DIR/设定" -name "*.md" 2>/dev/null | wc -l | tr -d ' ')
+    SETTING_COUNT=$(find "$BOOK_DIR/设定" -name "*.md" 2>/dev/null | wc -l | tr -d ' ' || true)
+    case "$SETTING_COUNT" in ''|*[!0-9]*) SETTING_COUNT=0 ;; esac
   fi
   if [ "$CHAPTER_COUNT" -gt 10 ] && [ "$SETTING_COUNT" -lt 3 ]; then
-    BOOK_OUTPUT+="[WARN] ${BOOK_NAME}：正文 ${CHAPTER_COUNT} 章，但设定文件只有 ${SETTING_COUNT} 个，建议补充设定。\n"
+    BOOK_OUTPUT+="[WARN] ${BOOK_NAME}：正文 ${CHAPTER_COUNT} 章，但设定文件只有 ${SETTING_COUNT} 个，建议补充设定。${NL}"
   fi
 
   # 4. 过期或异常伏笔线索
@@ -65,7 +71,8 @@ for BOOK_DIR in "${BOOK_DIRS[@]}"; do
       # 说明列号本身就不该假设固定），改为运行时从每张表的表头行动态定位"状态"列。
       # 一个文件可能含多张伏笔子表（如按 A/B/C/D 分类），分隔线行标志上一行是表头，
       # 每遇到一次分隔线就重新定位一次状态列，不假设全文件只有一张表或列序统一。
-      $0 ~ /^\|[-[:space:]|]+$/ {
+      # 分隔行字符组必须含 `:`，兼容 |:---|:---:|---:| 的 Markdown 对齐写法。
+      $0 ~ /^\|[-:[:space:]|]+$/ {
         status_col = 0
         for (i = 1; i <= prev_nf; i++) {
           if (trim(prev[i]) ~ /^状态/) { status_col = i; break }
@@ -83,7 +90,7 @@ for BOOK_DIR in "${BOOK_DIRS[@]}"; do
       }
     ' "$BOOK_DIR/追踪/伏笔.md" 2>/dev/null || true)
     if [ -n "$ABNORMAL_FORESHADOW" ]; then
-      BOOK_OUTPUT+="[WARN] ${BOOK_NAME}：伏笔.md 中检测到过期或异常的伏笔条目，建议跑 /story-review lean 或做一次伏笔审计。\n"
+      BOOK_OUTPUT+="[WARN] ${BOOK_NAME}：伏笔.md 中检测到过期或异常的伏笔条目，建议跑 /story-review lean 或做一次伏笔审计。${NL}"
     fi
   fi
 
@@ -91,16 +98,16 @@ for BOOK_DIR in "${BOOK_DIRS[@]}"; do
   if [ -d "$BOOK_DIR/正文" ] || [ -f "$BOOK_DIR/正文.md" ]; then
     # 长篇判定：有 追踪/ 视为长篇，要求 大纲/ 目录
     if [ -d "$BOOK_DIR/追踪" ] && [ ! -d "$BOOK_DIR/大纲" ]; then
-      BOOK_OUTPUT+="[WARN] ${BOOK_NAME}：已有 正文/ 但缺少 大纲/，建议先搭大纲。\n"
+      BOOK_OUTPUT+="[WARN] ${BOOK_NAME}：已有 正文/ 但缺少 大纲/，建议先搭大纲。${NL}"
     # 短篇判定：无 追踪/ 视为短篇，要求 小节大纲.md 单文件
     elif [ ! -d "$BOOK_DIR/追踪" ] && [ ! -f "$BOOK_DIR/小节大纲.md" ]; then
-      BOOK_OUTPUT+="[WARN] ${BOOK_NAME}：已有正文但缺少 小节大纲.md，建议先搭大纲。\n"
+      BOOK_OUTPUT+="[WARN] ${BOOK_NAME}：已有正文但缺少 小节大纲.md，建议先搭大纲。${NL}"
     fi
   fi
 
   # 仅在有问题时输出该书目的信息
   if [ -n "$BOOK_OUTPUT" ]; then
-    OUTPUT+="检查：$BOOK_NAME\n$BOOK_OUTPUT"
+    OUTPUT+="检查：$BOOK_NAME${NL}$BOOK_OUTPUT"
     HAS_WARNINGS=true
   fi
 done
@@ -108,9 +115,11 @@ done
 # 3. 全局拆文未完成检测（项目级，非书目级）
 GLOBAL_PROGRESS_OUTPUT=""
 if [ -d "$ROOT/拆文库" ]; then
-  while IFS= read -r -d '' progress_file; do
-    GLOBAL_PROGRESS_OUTPUT+="[WARN] 拆文未完成：${progress_file#$ROOT/}，运行 /story-long-analyze 继续。\n"
-  done < <(find "$ROOT/拆文库" -name "_progress.md" -print0 2>/dev/null || true)
+  # 同 session-start：按「最终状态」过滤，拆完的书不再报（裸数文件会永久误报）。
+  while IFS= read -r progress_file; do
+    [ -n "$progress_file" ] || continue
+    GLOBAL_PROGRESS_OUTPUT+="[WARN] 拆文未完成：${progress_file#$ROOT/}，运行 /story-long-analyze 继续。${NL}"
+  done < <(discover_incomplete_analyses "$ROOT")
 fi
 if [ -n "$GLOBAL_PROGRESS_OUTPUT" ]; then
   OUTPUT+="$GLOBAL_PROGRESS_OUTPUT"
@@ -137,6 +146,9 @@ if node -e "" >/dev/null 2>&1; then
 fi
 
 # 仅在有警告时输出
+# 必须 %s 不能 %b：$OUTPUT 里嵌着书名目录名和 node 连续性输出（含从文件里读出的章标题）。
+# %b 会把其中的 `\n`、`\b` 当转义展开，`\c` 更会直接终止 printf，把后面的 [WARN] 全吞掉。
+# 分隔换行由上面拼接时的 ${NL} 真实换行承担。
 if [ "$HAS_WARNINGS" = true ]; then
-  printf '%b' "=== 写作缺口检测 ===\n$OUTPUT\n"
+  printf '%s\n' "=== 写作缺口检测 ===" "$OUTPUT"
 fi

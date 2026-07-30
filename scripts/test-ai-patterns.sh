@@ -302,7 +302,26 @@ const ni = r.findings.filter((f) => f.type === 'not-is-comparison');
 if (ni.length !== 1) throw new Error('引号外叙述翻转句应命中 1 处 not-is: ' + JSON.stringify(r.findings.map((f) => f.type)));
 NODE
 
-echo "issue #205 (跨空行翻转命中 / 引号内台词豁免) regression tests passed."
+# 引号不成对（多段台词只在末段收引号、全半角混用漏收）不得让 not-is 整段静默失效：
+# 引号片段按行封顶，未闭合的开引号只吃掉本行剩余部分，后面几行叙述照常参与扫描。
+FIXTURE_UNCLOSED_QUOTE="$TMP_DIR/fixture-unclosed-quote-notis.md"
+printf '%s\n' \
+  '她终于开口：“我不想再提这件事。' \
+  '他没接话。' \
+  '他不是不明白，是懒得解释。' \
+  '她低头，“算了。”' > "$FIXTURE_UNCLOSED_QUOTE"
+set +e
+node "$SCRIPT" --json "$FIXTURE_UNCLOSED_QUOTE" > "$OUT"
+set -e
+node - "$OUT" <<'NODE'
+const fs = require('fs');
+const r = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
+const ni = r.findings.filter((f) => f.type === 'not-is-comparison');
+if (ni.length !== 1) throw new Error('未闭合引号后的叙述翻转句应命中 1 处 not-is: ' + JSON.stringify(r.findings.map((f) => `${f.type}@${f.line}`)));
+if (ni[0].line !== 3) throw new Error('not-is 应定位到「不是」所在行 3，实际 ' + ni[0].line);
+NODE
+
+echo "issue #205 (跨空行翻转命中 / 引号内台词豁免 / 未闭合引号不吞叙述) regression tests passed."
 
 # --- issue #205：微动作复读（「了下/了一下」式轻量补语高密度=电报体指纹）---
 FIXTURE11="$TMP_DIR/fixture-micro-tic.md"
@@ -959,7 +978,11 @@ printf '%s\n' \
   '没有伴奏，没有和声，没有提词器。' \
   '他没炫技，没有那种一张嘴就飙高音的架势。他只是唱，把每个字放平。' \
   '“没有饭，没有水，我们怎么过夜？”有人喊。' \
-  '他没有回头。巷子里没有灯，他摸着墙走。' > "$FIXTURE_PARADE"
+  '他没有回头。巷子里没有灯，他摸着墙走。' \
+  '船沉没在雾里，没人回头，江面上就只有几块浮木。' \
+  '他的话被淹没在掌声里，没多久，台上就只有他一个人。' \
+  '雨下了没多久，没等她撑伞，巷子里就只有水声。' \
+  '他没等她开口，没等她反应，只是转身走了。' > "$FIXTURE_PARADE"
 set +e
 node "$SCRIPT" --json "$FIXTURE_PARADE" > "$OUT"
 set -e
@@ -967,10 +990,12 @@ node - "$OUT" <<'NODE'
 const fs = require('fs');
 const r = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
 const np = r.findings.filter((f) => f.type === 'negation-parade');
-if (np.length !== 2) throw new Error('否定排比应命中 2 处 negation-parade: ' + JSON.stringify(r.findings.map((f) => `${f.type}@${f.line}`)));
-if (np[0].line !== 1 || np[1].line !== 2) throw new Error('negation-parade 应命中 line 1（连排）与 line 2（先否定后只是）: ' + JSON.stringify(np));
+if (np.length !== 3) throw new Error('否定排比应命中 3 处 negation-parade: ' + JSON.stringify(r.findings.map((f) => `${f.type}@${f.line}`)));
+if (np[0].line !== 1 || np[1].line !== 2 || np[2].line !== 8) throw new Error('negation-parade 应命中 line 1/2 与重复「没等」的 line 8: ' + JSON.stringify(np));
 if (!np.every((f) => f.severity === 'blocking')) throw new Error('negation-parade 应为 blocking');
-// 引号内台词（line 3）与分句独立否定（line 4）不算排比。
+// 引号内台词（line 3）与分句独立否定（line 4）不算排比；
+// 黏着语素「沉没/淹没」（line 5/6）与单个时间惯用语「没多久」（line 6/7）不算；
+// 但重复「没等 A，没等 B，只是 C」本身就是目标排比，不能被时间短语豁免吞掉。
 NODE
 
 echo "negation-parade (否定排比) regression tests passed."
@@ -1079,3 +1104,56 @@ if (qe.length !== 0) throw new Error('低于 3 处的引号强调不应报 quote
 NODE
 
 echo "quote-emphasis-tic (引号强调滥用) regression tests passed."
+
+# --- issue #255：章尾状态总结体（trailer-summary）------------------------------
+# 细纲「结尾设定/收束状态」被原样写成总结句收章。与 trailer-ending 共用文末 600 字窗口。
+FIXTURE_TRAILER_SUMMARY="$TMP_DIR/fixture-trailer-summary.md"
+printf '%s\n' \
+  '她把账单摊在桌上，指腹压出一道白痕，纸边被汗浸软了一角。' \
+  '他端起杯子又放下，杯底磕在桌面上响了一声。' \
+  '这一切都结束了。这一夜注定无眠。' > "$FIXTURE_TRAILER_SUMMARY"
+set +e
+node "$SCRIPT" --json "$FIXTURE_TRAILER_SUMMARY" > "$OUT"
+node "$SCRIPT" --fail-on=blocking "$FIXTURE_TRAILER_SUMMARY" >/dev/null 2>&1
+trailer_sum_blk=$?
+set -e
+node - "$OUT" <<'NODE'
+const fs = require('fs');
+const r = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
+const ts = r.findings.filter((f) => f.type === 'trailer-summary');
+if (ts.length < 2) throw new Error('章尾「这一切都结束了」+「这一夜注定」应各报一条: ' + JSON.stringify(ts));
+if (ts.some((f) => f.severity !== 'blocking')) throw new Error('trailer-summary 应为 blocking: ' + JSON.stringify(ts));
+NODE
+[ "$trailer_sum_blk" -eq 1 ] || { echo "FAIL: trailer-summary --fail-on=blocking 应退出 1，实际 $trailer_sum_blk" >&2; exit 1; }
+
+# 负例：语料实测出的六类结构性误报形状，逐条钉死——时间跳转（就这样，时间过去了）、
+# 及物用法（才结束了这个话题）、场内报幕（宣布…圆满落幕）、条件从句（等这一切结束了，…）、
+# 动补（说明得非常清楚）、嵌套从句（认为这一切都结束了的时候）、成语跨匹配（命中注定）、
+# 系表（结果是注定的），以及「(这|那)一刻…终于明白」与裸认知句——后两者是短篇第一人称
+# 审判金句的形状（short-craft「审判金句 / 心死余韵」是卖点），本规则一律不收。
+FIXTURE_TRAILER_SUMMARY_NORMAL="$TMP_DIR/fixture-trailer-summary-normal.md"
+printf '%s\n' \
+  '就这样，一年的时间过去了，账本从抽屉挪进了保险柜。' \
+  '就这样，主仆二人都自责了一番，才结束了这个话题。' \
+  '就这样，四点多钟，季政委宣布这次相亲联谊会圆满落幕。' \
+  '等这一切结束了，我们就能过上平静幸福的生活了。' \
+  '尽管兽绝神木似乎将这一切都说明得非常清楚，但结果与所想并不一样。' \
+  '就在他认为这一切都结束了的时候，门又被推开了。' \
+  '世间的这一刻，所有人都接受了命中注定的结局！' \
+  '加上装备的碾压，这一战的结果是注定的。' \
+  '他捏着那张纸，不知道这一切意味着什么。' \
+  '她盯着屏幕，不明白这一切都说明了什么。' \
+  '那一刻我终于明白，母亲当年为什么总在夜里哭。' \
+  '我猛地抬头，死死盯着手机，终于明白，为何女儿这半年总躲着我。' \
+  '我抓起外套就往门口走，反手带上了那扇门。' > "$FIXTURE_TRAILER_SUMMARY_NORMAL"
+set +e
+node "$SCRIPT" --json "$FIXTURE_TRAILER_SUMMARY_NORMAL" > "$OUT"
+set -e
+node - "$OUT" <<'NODE'
+const fs = require('fs');
+const r = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
+const ts = r.findings.filter((f) => f.type === 'trailer-summary');
+if (ts.length !== 0) throw new Error('裸认知句/时间跳转不应报 trailer-summary: ' + JSON.stringify(ts));
+NODE
+
+echo "trailer-summary (章尾状态总结体) regression tests passed."

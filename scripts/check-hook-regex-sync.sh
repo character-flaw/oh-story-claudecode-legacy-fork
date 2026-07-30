@@ -48,12 +48,14 @@ setup_fixture() {
 ## 当前位置
 - 章: 第1章
 CTX
+  # 表头状态枚举从 $STATUS_ENUM 展开，不再另抄一份：协议加状态时 fixture 也跟着变，
+  # 否则新状态永远不会被行为级 fixture 走到（表头行本身由 hook 的 ^状态\{ 分支跳过）。
   cat > "$root/book/追踪/伏笔.md" <<EOF_FORESHADOW
 # 伏笔追踪
 
 ## 伏笔状态表
 
-| ID | 伏笔内容 | 埋设章节 | 预计回收章节 | 状态{未埋/已埋/已回收/已过期} | 重要度{高/中/低} |
+| ID | 伏笔内容 | 埋设章节 | 预计回收章节 | 状态{$STATUS_ENUM} | 重要度{高/中/低} |
 |----|---------|---------|-------------|-----------------------------|----------------|
 $foreshadow_body
 EOF_FORESHADOW
@@ -134,10 +136,17 @@ if grep -q 'Open foreshadowing[[:space:]]threads' "$HOOK_FILE"; then
   exit 1
 fi
 
-# Ensure all protocol statuses are accounted for in documented hook semantics.
+# Ensure every protocol status is explicitly classified by the hook's awk classifier:
+# either an explicit warn state (status == "X") or an explicit normal state (status != "X").
+# The old second clause grepped PROTOCOL_FILE — the very file STATUS_ENUM was extracted
+# from — so it always matched and the whole loop could never fail. A status added to the
+# protocol without teaching the hook falls into the classifier's else branch and gets
+# reported as 异常 on every SessionStart; that drift must turn this check red.
 for state in $(echo "$STATUS_ENUM" | tr '/' ' '); do
-  if ! grep -qF "$state" "$HOOK_FILE" && ! grep -qF "$state" "$PROTOCOL_FILE"; then
-    echo "FAIL: status not documented in hook/protocol semantics: $state"
+  if ! grep -qF "status == \"$state\"" "$HOOK_FILE" \
+    && ! grep -qF "status != \"$state\"" "$HOOK_FILE"; then
+    echo "FAIL: protocol status not classified by hook: $state"
+    echo "  add status == \"$state\" (warn) or status != \"$state\" (normal) to the 伏笔 awk in $HOOK_FILE"
     exit 1
   fi
 done
@@ -167,6 +176,10 @@ TOXIC_SYNC=(
   '是[^。！？!?\n，,]{1,12}[，,]\s*(?:而)?不是[^。！？!?\n]{1,20}'
   '不是[^。！？!?\n]{1,16}[，,]\s*(?:而)?是'
   '没人知道|谁也不知道|谁也没想到|殊不知|(?:这)?才刚刚开(?:始|头)|正(?:朝着|向着)[^。！？!?\n]{0,24}(?:压|涌|袭|逼)(?:了?过去|了?过来|来)|(?<!正式)拉开(?:序幕|帷幕)|即将(?:开始|来临|降临)'
+  '这一(?:夜|天|刻|战|年|局|役)[，,]?[^。！？!?，,\n]{0,6}(?<!命中)(?<!是)注定[^。！？!?\n]{0,8}[。！]'
+  '就这样[，,][^。！？!?，,\n]{0,8}(?:一切|全部)[^。！？!?，,\n]{0,4}(?:结束了|落幕|收场)[。！]'
+  '这一切[，,]?[^。！？!?，,\n]{0,6}(?:都)?(?:说明|意味着|结束了)(?!的)(?:(?!什么)[^。！？!?\n]){0,6}[。！]'
+  '(?:新的篇章|新的旅程|崭新的篇章|新的人生)[^。！？!?\n]{0,6}(?:开始|拉开|展开)|命运[^。！？!?\n]{0,6}齿轮'
   '.*[，,]\s*(?:而)?不是([^。！？!?\n]*)$'
   # 常量（文末窗口、分句边界、疑问尾/确认语排除集）
   'TOXIC_TRAILER_WINDOW = 600'
@@ -179,6 +192,7 @@ TOXIC_SYNC=(
   '「没有…，没有…」排比删到只剩一个或全删，改写正面在场的细节。'
   '删否定铺垫，直接写肯定项，或改成动作细节。'
   '删章尾预告腔，用正在发生的动作或画面收章。'
+  '删章尾状态总结句，收束状态是细纲的规划口径，正文落到具体动作、画面或台词上。'
   '毒句式是确定性 AI 指纹：本章须清零后再继续。完整扫描：node <skill>/scripts/check-ai-patterns.js --check <正文文件>'
   '处未清毒句式欠账，'
   '去味:跳过'

@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## v0.7.2 选择性安全升级（fork）
+
+- 合入 v0.7.1–v0.7.2 的自然句法与“电报体”治理、细纲防机械复刻、具体章尾落点、`trailer-summary` 检测、开篇同质化审查、扫榜部分成功语义，以及 hooks / adapters / browser-cdp 的可靠性修复。
+- 保留本 fork 的章节留存节奏：“收一个、变一个、开一个”；强反转、硬悬念和爆点按结构节点分配，低压章允许无硬钩子，禁止假钩子与下一章撤回。
+- 新增本地 Story Dashboard；自动化测试使用运行时生成的中性夹具，不依赖公开小说 demo。
+- 未合入第三方 README、截图、演示小说或宣传入口；清理继承案例名与外部仓库链接，版本检查、安装命令和发布条件继续指向本 fork。
+- `agents_version` 升至 `21`，`story-setup` 版本保持 `1.2.7`；已部署项目需要重新执行 `story-setup` 并新开会话。
+
 ## 仓库净化（fork）
 
 - 移除从上游继承、并非本 fork 产出的公开样例文件及 README 展示入口。

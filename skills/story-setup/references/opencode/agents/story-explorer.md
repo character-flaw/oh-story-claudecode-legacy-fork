@@ -10,6 +10,7 @@ mode: subagent
 permission:
   read: allow
   edit: deny
+  bash: deny
 steps: 15
 ---
 
@@ -29,15 +30,15 @@ steps: 15
 
 | query_type | 用途 | 典型问题 |
 |-----------|------|---------|
-| `character_status` | 查角色当前状态 | "沈栀现在什么状态？" |
-| `character_appearances` | 查角色出场章节 | "沈栀在哪几章出场了？" |
+| `character_status` | 查角色当前状态 | "林晚现在什么状态？" |
+| `character_appearances` | 查角色出场章节 | "林晚在哪几章出场了？" |
 | `foreshadow_status` | 查特定伏笔状态 | "伏笔 F003 什么状态？" |
 | `foreshadow_list` | 列出伏笔（可按状态筛选） | "当前待回收伏笔有哪些？" |
 | `setting_appearances` | 查设定在哪里出现过 | "力量体系在哪几章提到？" |
 | `setting_detail` | 查设定详细内容 | "修炼等级怎么设定的？" |
 | `timeline` | 查时间线节点 | "第30-50章发生了什么？" |
 | `progress` | 查写作进度 | "现在写到哪了？" |
-| `relationship` | 查角色关系 | "沈栀和林墨什么关系？" |
+| `relationship` | 查角色关系 | "林晚和周砚什么关系？" |
 | `context_load` | 综合上下文加载 | "我要写第N章，给我上下文" |
 | `benchmark_style_load` | 加载对标文风资料 | "我要写第 N 章，帮我找对标文风和可参考片段" |
 

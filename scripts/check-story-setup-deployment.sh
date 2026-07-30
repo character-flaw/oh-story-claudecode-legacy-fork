@@ -60,7 +60,7 @@ write_sentinel() {
   local root="$1"
   cat > "$root/.story-deployed" <<'SENTINEL'
 deployed_at: 2026-05-24T00:00:00Z
-agents_version: 19
+agents_version: 21
 setup_skill_version: 1.2.7
 target_cli: claude-code
 resolver_strategy: project-local-skill-reference
@@ -150,11 +150,17 @@ echo "  OK TS1 hook dependency completeness"
 # 连续性检查全部静默退化，同样必须登记进自检名单。
 selfcheck_line="$(grep -E 'for hook in .*; do' "$HOOKS_DIR/session-start.sh" | head -1)"
 [ -n "$selfcheck_line" ] || fail "session-start.sh 缺少 hook 自检 for 循环"
+# 名单里最后一个 hook 后面紧跟的是 `;` 而不是空格（grep 命中行按 pattern 必然以 `; do` 收尾），
+# 直接拿原始行做 *" $base "* 会把「排在最后的、其实已登记」的 hook 误报成漏列。先把分号换成
+# 空格并两端补空格，让首位/末位都能被同一条 case 命中，而不是要求名单保持某种排序。
+selfcheck_tokens=" ${selfcheck_line//;/ } "
 while IFS= read -r hookfile; do
   base="$(basename "$hookfile")"
-  case "$selfcheck_line" in
+  case "$selfcheck_tokens" in
     *" $base "*) : ;;
-    *) fail "session-start.sh 部署自检名单漏列 hook：$base（新增 hook 须同步加入该名单）" ;;
+    # ${base} 必须加花括号：macOS bash 3.2 在 UTF-8 区域会把全角「（」的首字节并进变量名，
+    # set -u 于是抛 base?: unbound variable，真正漏列时反而看不到是哪个 hook。
+    *) fail "session-start.sh 部署自检名单漏列 hook：${base}（新增 hook 须同步加入该名单）" ;;
   esac
 done < <(find "$HOOKS_DIR" -maxdepth 1 \( -name '*.sh' -o -name '*.js' \) -type f)
 echo "  OK TS1b session-start self-check lists all hook scripts and node cores"
@@ -168,6 +174,7 @@ for group in 'templates/hooks/' 'templates/rules' 'templates/agents' 'agent-refe
 done
 assert_file "$SKILL_DIR/references/openclaw/AGENTS.md.tmpl"
 assert_file "$SKILL_DIR/references/generic/AGENTS.md.tmpl"
+assert_file "$SKILL_DIR/references/reasonix/AGENTS.md.tmpl"
 assert_file "$SKILL_DIR/references/zcode/AGENTS.md.tmpl"
 assert_file "$SKILL_DIR/references/zcode/config.json.patch"
 assert_file "$SKILL_DIR/references/zcode/hooks/hooks.json"
@@ -182,6 +189,8 @@ assert_grep 'references/openclaw/AGENTS\.md\.tmpl' "$SKILL_FILE" "deployment man
 assert_grep 'OpenClaw skills-only|target_cli 含 openclaw' "$SKILL_FILE" "story-setup must document OpenClaw skills-only deployment"
 assert_grep 'references/generic/AGENTS\.md\.tmpl' "$SKILL_FILE" "deployment manifest missing generic AGENTS template"
 assert_grep 'target_cli 含 generic|通用 Web AI / 其他 Agent' "$SKILL_FILE" "story-setup must document generic Web AI deployment"
+assert_grep 'references/reasonix/AGENTS\.md\.tmpl' "$SKILL_FILE" "deployment manifest missing Reasonix AGENTS template"
+assert_grep 'Reasonix skills-only|target_cli 含 reasonix' "$SKILL_FILE" "story-setup must document Reasonix skills-only deployment"
 assert_grep 'references/zcode/AGENTS\.md\.tmpl' "$SKILL_FILE" "deployment manifest missing ZCode AGENTS template"
 assert_grep 'target_cli 含 zcode|target_cli = zcode' "$SKILL_FILE" "story-setup must document ZCode deployment"
 assert_grep '\.zcode/config\.json' "$SKILL_FILE" "story-setup must document ZCode config merge"
@@ -217,10 +226,14 @@ cat > "$root/book/追踪/上下文.md" <<'CTX'
 - 章: 第1章
 CTX
 touch "$root/拆文库/sample/_progress.md"
+# 负向 fixture：已拆完的书不得再被报成「未完成」（裸数 _progress.md 会永久误报）。
+mkdir -p "$root/拆文库/done"
+printf '# 深度拆解进度：done\n\n- 最终状态：completed\n- schema_version: 2\n' > "$root/拆文库/done/_progress.md"
 
 out_start="$(run_from_nested "$root" session-start.sh || true)"
 echo "$out_start" | grep -q '当前位置' || fail "session-start did not resolve active book from project root"
 echo "$out_start" | grep -q '未完成拆文' || fail "session-start did not resolve 拆文库 from project root"
+echo "$out_start" | grep -q '有 1 个未完成拆文' || fail "session-start counted completed 拆文 as unfinished"
 if echo "$out_start" | grep -q '参考资料包缺失'; then
   fail "session-start reported missing reference bundle after deployed refs were copied"
 fi
@@ -234,6 +247,11 @@ echo "$out_post" | grep -q 'Read book/追踪/上下文.md' || fail "post-compact
 out_gaps="$(run_from_nested "$root" detect-story-gaps.sh || true)"
 if [ -n "$out_gaps" ] && echo "$out_gaps" | grep -q "$root/nested"; then
   fail "detect-story-gaps leaked nested cwd paths"
+fi
+# 与 session-start 同口径：未完成的要报、已完成的不许报（两边各自读取 拆文库/，需各自钉死）。
+echo "$out_gaps" | grep -q '拆文未完成：拆文库/sample/_progress.md' || fail "detect-story-gaps missed unfinished 拆文"
+if echo "$out_gaps" | grep -q '拆文库/done/_progress.md'; then
+  fail "detect-story-gaps counted completed 拆文 as unfinished"
 fi
 
 fallback_root="$TMP_DIR/git-fallback"
@@ -265,7 +283,7 @@ setup_git_repo "$bad_sentinel_root"
 copy_hooks "$bad_sentinel_root"
 cat > "$bad_sentinel_root/.story-deployed" <<'SENTINEL'
 deployed_at: 2026-05-24T00:00:00Z
-agents_version: 19
+agents_version: 21
 setup_skill_version: 1.2.7
 resolver_strategy: project-local-skill-reference
 references_dir: .claude/skills/story-setup/references/agent-references
@@ -287,7 +305,7 @@ resolver_strategy: project-local-skill-reference
 references_dir: .claude/skills/story-setup/references/agent-references
 SENTINEL
 stale_previous_out="$(run_from_nested "$stale_previous_root" session-start.sh 2>&1 || true)"
-echo "$stale_previous_out" | grep -q '低于 v19' || fail "session-start did not warn for agents_version 17 stale v19 deployment"
+echo "$stale_previous_out" | grep -q '低于 v21' || fail "session-start did not warn for agents_version 17 stale v21 deployment"
 
 newer_project_root="$TMP_DIR/newer-project"
 mkdir -p "$newer_project_root/.claude/skills/story-setup/references/agent-references"
@@ -295,14 +313,14 @@ setup_git_repo "$newer_project_root"
 copy_hooks "$newer_project_root"
 cat > "$newer_project_root/.story-deployed" <<'SENTINEL'
 deployed_at: 2026-05-24T00:00:00Z
-agents_version: 20
+agents_version: 22
 setup_skill_version: 1.3.0
 target_cli: claude-code
 resolver_strategy: project-local-skill-reference
 references_dir: .claude/skills/story-setup/references/agent-references
 SENTINEL
 newer_project_out="$(run_from_nested "$newer_project_root" session-start.sh 2>&1 || true)"
-echo "$newer_project_out" | grep -q '高于本 hook 支持的 v19' || fail "session-start did not reject agents_version 20 downgrade"
+echo "$newer_project_out" | grep -q '高于本 hook 支持的 v21' || fail "session-start did not reject agents_version 22 downgrade"
 echo "$newer_project_out" | grep -q '不要降级覆盖' || fail "session-start did not explain future-version safety"
 
 mixed_version_root="$TMP_DIR/mixed-version"
@@ -312,7 +330,7 @@ copy_hooks "$mixed_version_root"
 touch "$mixed_version_root/.claude/skills/story-setup/references/agent-references/dummy.md"
 cat > "$mixed_version_root/.story-deployed" <<'SENTINEL'
 deployed_at: 2026-05-24T00:00:00Z
-agents_version: 19
+agents_version: 21
 setup_skill_version: 1.2.6
 target_cli: claude-code
 resolver_strategy: project-local-skill-reference
@@ -320,11 +338,11 @@ references_dir: .claude/skills/story-setup/references/agent-references
 SENTINEL
 mixed_version_out="$(run_from_nested "$mixed_version_root" session-start.sh 2>&1 || true)"
 # agents_version 是唯一运行时过期权威；setup_skill_version 落后不触发重部署（设计如此）
-if echo "$mixed_version_out" | grep -q '低于 v19'; then
-  fail "session-start incorrectly nagged '低于 v19' for current agents_version=19 just because setup_skill_version lags"
+if echo "$mixed_version_out" | grep -q '低于 v21'; then
+  fail "session-start incorrectly nagged '低于 v21' for current agents_version=21 just because setup_skill_version lags"
 fi
 if echo "$mixed_version_out" | grep -q '高于本 hook'; then
-  fail "session-start incorrectly nagged '高于本 hook' for current agents_version=19 just because setup_skill_version lags"
+  fail "session-start incorrectly nagged '高于本 hook' for current agents_version=21 just because setup_skill_version lags"
 fi
 
 echo "  OK TS5 sentinel diagnostics"
@@ -419,12 +437,12 @@ echo "  OK TS9 settings JSON"
 # agent 模板要带住关键行为规则。原先还夹着一批「UPGRADING.md/README 必须写到某句话」
 # 的文档完整性断言——那种改一个词就红、测的是措辞不是行为，已随 check-story-long-write-contract.sh
 # 一并去掉，发版是否补 UPGRADING 由发版清单和人把关，不靠 CI 钉死措辞。
-assert_grep 'AGENTS_VERSION.*-lt 19|AGENTS_VERSION" -lt 19' "$HOOKS_DIR/session-start.sh" "session-start must warn for agents_version 18 under v19 deployment"
-assert_grep 'AGENTS_VERSION.*-gt 19|AGENTS_VERSION" -gt 19' "$HOOKS_DIR/session-start.sh" "session-start must reject agents_version 20 downgrade"
-assert_grep 'agents_version.*小于 `19`|版本 < 19' "$SKILL_DIR/SKILL.md" "story-setup redeploy branch must treat agents_version 18 as stale"
-assert_grep 'agents_version.*大于 `19`' "$SKILL_DIR/SKILL.md" "story-setup must stop before downgrading a newer deployment"
-assert_grep 'agents_version.*小于 `19`|小于 .19' "$REPO_ROOT/skills/story-review/SKILL.md" "story-review must treat agents_version 18 as stale"
-assert_grep 'agents_version.*大于 `19`' "$REPO_ROOT/skills/story-review/SKILL.md" "story-review must not run old contracts against a newer deployment"
+assert_grep 'AGENTS_VERSION.*-lt 21|AGENTS_VERSION" -lt 21' "$HOOKS_DIR/session-start.sh" "session-start must warn for agents_version 20 under v21 deployment"
+assert_grep 'AGENTS_VERSION.*-gt 21|AGENTS_VERSION" -gt 21' "$HOOKS_DIR/session-start.sh" "session-start must reject agents_version 22 downgrade"
+assert_grep 'agents_version.*小于 `21`|版本 < 21' "$SKILL_DIR/SKILL.md" "story-setup redeploy branch must treat agents_version 20 as stale"
+assert_grep 'agents_version.*大于 `21`' "$SKILL_DIR/SKILL.md" "story-setup must stop before downgrading a newer deployment"
+assert_grep 'agents_version.*小于 `21`|小于 .21' "$REPO_ROOT/skills/story-review/SKILL.md" "story-review must treat agents_version 20 as stale"
+assert_grep 'agents_version.*大于 `21`' "$REPO_ROOT/skills/story-review/SKILL.md" "story-review must not run old contracts against a newer deployment"
 assert_grep '^version:[[:space:]]*1\.2\.7$' "$SKILL_FILE" "story-setup frontmatter must match the deployed setup version"
 assert_grep '剧情/情绪模块\.md.*missing_primary_contract|missing_primary_contract.*剧情/情绪模块\.md' "$SKILL_DIR/references/templates/agents/story-explorer.md" "story-explorer must require the current emotion-module artifact"
 assert_grep '剧情/节奏\.md.*missing_primary_contract|missing_primary_contract.*剧情/节奏\.md' "$SKILL_DIR/references/templates/agents/story-explorer.md" "story-explorer must require the current rhythm artifact"

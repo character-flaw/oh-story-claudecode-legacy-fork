@@ -62,6 +62,23 @@ assert_denied "$out" "long prose without outline"
 out="$(run_hook pre-tool-prose-guard '{"tool_name":"Bash","tool_input":{"command":"cat > book/正文/第001章_开端.md <<EOF\n正文\nEOF"}}')"
 assert_empty "$out" "long prose with outline"
 
+mkdir -p "$ROOT/bare/正文" "$ROOT/cwd-book/正文" "$ROOT/cwd-book/大纲"
+out="$(run_hook pre-tool-prose-guard '{"tool_name":"Write","tool_input":{"file_path":"bare/正文/第1章_首章.md"}}')"
+assert_denied "$out" "bare long project without scaffolding"
+relative_payload="$(python3 - "$ROOT/cwd-book" <<'PY'
+import json, sys
+from pathlib import Path
+payload = {"cwd": str(Path(sys.argv[1]).resolve()), "tool_name": "Write", "tool_input": {"file_path": "正文/第8章_相对.md"}}
+sys.stdout.buffer.write(json.dumps(payload, ensure_ascii=False).encode("utf-8"))
+PY
+)"
+out="$(run_hook pre-tool-prose-guard "$relative_payload")"
+assert_denied "$out" "relative prose target from hook cwd"
+printf '%s' "$out" | grep -q 'cwd-book/大纲' || fail "relative target was not resolved from hook cwd: $out"
+: > "$ROOT/cwd-book/大纲/细纲_第8章.md"
+out="$(run_hook pre-tool-prose-guard "$relative_payload")"
+assert_empty "$out" "relative prose target with cwd-local outline"
+
 out="$(run_hook pre-tool-prose-guard '{"tool_name":"apply_patch","tool_input":{"command":"*** Begin Patch\n*** Add File: book/正文/第002章_新局.md\n+正文\n*** End Patch\n"}}')"
 assert_denied "$out" "apply_patch long prose without outline"
 : > "$ROOT/book/正文/第009章_已存在.md"
@@ -143,7 +160,7 @@ echo "  OK session/compact/stop JSON"
 
 # ── Stop content sweep: Codex 无 PostToolUse，回合结束对 git 改动正文复扫硬信号（轻量网）──
 # 新写一章带截断、留作 git 改动（untracked）→ stop 必须点名并报截断；非改动文件不复扫。
-PAD6='江晨握紧拳头慢慢走向门口盘算着每一步。'  # bash 重复填充，避开 Windows python 文本 stdout 的 cp1252 崩溃
+PAD6='顾临握紧拳头慢慢走向门口盘算着每一步。'  # bash 重复填充，避开 Windows python 文本 stdout 的 cp1252 崩溃
 printf '# 第6章\n\n%s\n他冲过去一拳砸在' "$PAD6$PAD6$PAD6$PAD6$PAD6$PAD6" > "$ROOT/book/正文/第006章_截断.md"
 out="$(run_hook stop '{"hook_event_name":"Stop"}')"
 printf '%s' "$out" | assert_json || fail "stop content-sweep invalid JSON: $out"
