@@ -58,6 +58,32 @@
         "skills/story-setup/references/opencode/story_hook_core.js",
         "skills/story-setup/references/zcode/hooks/story_hook_core.js"
       ]
+    },
+    {
+      "name": "reference-hooks-chapter",
+      "source": "skills/story-long-write/references/hooks-chapter.md",
+      "targets": [
+        "skills/story-setup/references/agent-references/hooks-chapter.md",
+        "skills/story-short-analyze/references/hooks-chapter.md",
+        "skills/story-short-write/references/hooks-chapter.md"
+      ]
+    },
+    {
+      "name": "reference-plot-core-methods",
+      "source": "skills/story-long-write/references/plot-core-methods.md",
+      "targets": [
+        "skills/story-review/references/plot-core-methods.md",
+        "skills/story-setup/references/agent-references/plot-core-methods.md"
+      ]
+    },
+    {
+      "name": "reference-hooks-suspense",
+      "source": "skills/story-long-write/references/hooks-suspense.md",
+      "targets": [
+        "skills/story-setup/references/agent-references/hooks-suspense.md",
+        "skills/story-short-analyze/references/hooks-suspense.md",
+        "skills/story-short-write/references/hooks-suspense.md"
+      ]
     }
   ]
 }

@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## 留存节奏工程化（fork · 2026-08-01）
+
+对标上游"语料驱动 + 主观规则确定性化 + 多端同步脚本化"的运营方式，把本 fork 的章节留存节奏（"收一个、变一个、开一个"）从纯文档升级为工程化约束：
+
+- **参考文档纳入自动同步（点3）**：`hooks-chapter.md`、`plot-core-methods.md`、`hooks-suspense.md` 三份跨 skill 一致的方法论文档登记进 `scripts/shared-assets.json`（7 组/16 副本 → 10 组/24 副本）。以后改 `story-long-write` 源、跑 `sync-shared-assets.py sync` 即原子扇出全部镜像，不再手改多副本靠 CI 兜底。
+- **大纲层硬门（点2·批末硬拦）**：新增 `skills/story-long-write/scripts/check-outline-retention.js`，校验细纲三留存字段「本章兑现（收一个）/状态变化（变一个）/章尾余势（开一个）」是否填齐；缺失或留占位即非零退出。接进 `story-long-write` SKILL 批末检查点，作为交付前硬门。只判字段填没填，语义质量仍归 `story-review`。
+- **写正文前 hook 告警（点2·非阻塞）**：`guard-outline-before-prose.sh` 在写某章正文前，若该章细纲缺留存字段则打印提醒但放行（`exit 0`）。纯 bash、字节匹配，**不进 `proseBlockReason`、不动跨端阻断契约、不误伤旧格式细纲**；跨端 parity 测试与 7 项 CI 检查全过。
+- 跨章语义问题（假钩子＝下一章撤回、刺激通胀＝跨章强度曲线）故意不做正则，仍留 `story-review` 审查 agent，避免误杀。
+- 未 bump `agents_version`（保持 `21`）：均为 fork 本地增量，避免与上游版本号冲突。
+
 ## v0.7.2 选择性安全升级（fork）
 
 - 合入 v0.7.1–v0.7.2 的自然句法与“电报体”治理、细纲防机械复刻、具体章尾落点、`trailer-summary` 检测、开篇同质化审查、扫榜部分成功语义，以及 hooks / adapters / browser-cdp 的可靠性修复。

@@ -128,6 +128,25 @@ case "$BASE" in
       printf '%s\n' "   如确需先起草，请先补建对应细纲文件。" >&2
       exit 2
     fi
+    # 留存字段告警（非阻塞）：细纲缺「收一个/变一个/开一个」三留存字段时提醒补齐，但**不拦写**——
+    # 硬拦保留在 story-long-write 细纲批末门（scripts/check-outline-retention.js）。此处只是写正文前的
+    # 二道提醒网，避免误伤未迁移到新模板的旧格式细纲，也不改核心阻断契约（不进 proseBlockReason，
+    # 不动 parity）。走字节匹配（LC_ALL=C 已设），用参数展开抽值、避开多字节正则。任何异常均放行。
+    RET_MISSING=""
+    for _label in "本章兑现（收一个）" "状态变化（变一个）" "章尾余势（开一个）"; do
+      _line="$(grep -m1 -F "$_label" "$FOUND" 2>/dev/null || true)"
+      if [ -z "$_line" ]; then RET_MISSING="$RET_MISSING ${_label}[缺]"; continue; fi
+      _rest="${_line#*"$_label"}"; _rest="${_rest#：}"; _rest="${_rest#:}"
+      _rest="${_rest#"${_rest%%[![:space:]]*}"}"
+      case "$_rest" in
+        "") RET_MISSING="$RET_MISSING ${_label}[空]" ;;
+        \{*) RET_MISSING="$RET_MISSING ${_label}[占位]" ;;
+      esac
+    done
+    if [ -n "$RET_MISSING" ]; then
+      printf '%s\n' "⚠ 细纲留存字段未填（不拦写，建议补齐后再落正文）：第 ${NUM} 章 —$RET_MISSING" >&2
+      printf '%s\n' "   跑 story-long-write 的 scripts/check-outline-retention.js 补齐「收一个/变一个/开一个」，再写正文。" >&2
+    fi
     # 欠账门（无状态）：写第 N 章（首建）前，上一章有未清毒句式且未标「去味:跳过」豁免时先清再写。
     # 毒句式扫描走共享核 prose-toxic 子命令（与写后网同一份规则）；node/核缺失或扫描失败一律
     # 放行（宁可漏拦不可误伤）——写后网与 SKILL 同轮铁律仍兜底。判据现算自上一章文件，无状态。
