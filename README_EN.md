@@ -110,18 +110,18 @@ flowchart LR
 **Option 1** Tell Claude Code / OpenCode / ZCode / OpenClaw / Codex, or another Web AI / agent platform that can import a GitHub repo or skill:
 
 ```
-Install this skill https://github.com/qin1473692580-ux/oh-story
+Install this skill https://github.com/qin1473692580-ux/oh-story-claudecode
 ```
 
 **Option 2** Command line:
 
 ```bash
-npx skills add qin1473692580-ux/oh-story -y -g
+npx skills add qin1473692580-ux/oh-story-claudecode -y -g
 ```
 
 `-g` installs globally (available in every directory); drop `-g` to install only into the current directory. Re-run the same command to update.
 
-> After updating, if a project has already run `/story-setup`, re-run `/story-setup` from the project root to sync hooks / agents / references. Per-version changes are in [CHANGELOG.md](CHANGELOG.md) and [Releases](https://github.com/qin1473692580-ux/oh-story/releases).
+> After updating, if a project has already run `/story-setup`, re-run `/story-setup` from the project root to sync hooks / agents / references. Per-version changes are in [CHANGELOG.md](CHANGELOG.md) and [Releases](https://github.com/qin1473692580-ux/oh-story-claudecode/releases).
 >
 
 > **Codex users:** Use it in-place: Codex scans `$REPO_ROOT/.agents/skills` (a symlink to `skills/`) and discovers all 13 skills; invoke via `$story`, `$story-setup`, or `/skills`. On Windows, enable git `core.symlinks=true` or the symlink breaks — then use the `$story-setup` deployment below.
@@ -303,9 +303,9 @@ This skill pack turns recurring problems found in real writing practice into reu
 
 <a href="https://www.star-history.com/?repos=qin1473692580-ux%2Foh-story&type=date&legend=top-left">
  <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=qin1473692580-ux/oh-story&type=date&theme=dark&legend=top-left" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=qin1473692580-ux/oh-story&type=date&legend=top-left" />
-   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=qin1473692580-ux/oh-story&type=date&legend=top-left" />
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=qin1473692580-ux/oh-story-claudecode&type=date&theme=dark&legend=top-left" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=qin1473692580-ux/oh-story-claudecode&type=date&legend=top-left" />
+   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=qin1473692580-ux/oh-story-claudecode&type=date&legend=top-left" />
  </picture>
 </a>
 
@@ -315,7 +315,7 @@ Contributions are welcome — new skills, knowledge base additions, market data 
 
 ## Community
 
-- **GitHub Discussions**: [ask questions, get help, share workflows](https://github.com/qin1473692580-ux/oh-story/discussions).
+- **GitHub Discussions**: [ask questions, get help, share workflows](https://github.com/qin1473692580-ux/oh-story-claudecode/discussions).
 - **WeChat Official Account** (Chinese): "AI马内", maintained by 星河上人.
 
 ## Acknowledgments

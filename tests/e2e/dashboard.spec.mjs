@@ -55,7 +55,12 @@ test("用中性夹具浏览拆文库、搜索项目并编辑保存", async ({ pa
   await page.getByRole("tab", { name: /写作项目/ }).click();
   await expect(page.locator("#treeTruncationNotice")).toHaveCount(0);
   await expect(page.locator("#fileTree")).not.toContainText("关系.md");
+  // 按需加载一次只展开一层：点开「设定」只该拿到「角色」这一级，
+  // 两层深的 关系.md 必须等「角色」也被展开才出现，否则就是又退回递归全量序列化
   await page.locator("summary").filter({ hasText: "设定" }).click();
+  await expect(page.locator("#fileTree")).toContainText("世界设定.md");
+  await expect(page.locator("#fileTree")).not.toContainText("关系.md");
+  await page.locator("summary").filter({ hasText: "角色" }).click();
   await expect(page.locator("#fileTree")).toContainText("关系.md");
   const unfilteredRows = await page.locator("#fileTree .file-row").count();
   expect(unfilteredRows).toBeGreaterThan(1);
@@ -70,7 +75,7 @@ test("用中性夹具浏览拆文库、搜索项目并编辑保存", async ({ pa
   expect(await page.locator("#fileTree .file-row").count()).toBeLessThan(unfilteredRows);
   await page.locator("#refreshButton").click();
   await expect(page.locator("#toastRegion")).toContainText("工作区目录已刷新");
-  await expect(page.locator("#fileTree")).toContainText("江晨.md");
+  await expect(page.locator("#fileTree")).toContainText("顾临.md");
 
   // 清空搜索后回到已加载目录，作者刚展开的「设定」不能被收起。
   await page.locator("#treeSearch").press("Escape");

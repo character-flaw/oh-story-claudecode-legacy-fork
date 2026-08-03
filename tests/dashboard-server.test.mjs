@@ -85,11 +85,11 @@ async function createOversizedWorkspace(fileCount = 205) {
   const root = await mkdtemp(resolve(tmpdir(), "oh-story-dashboard-oversized-"));
   temporaryDirectories.push(root);
   const body = resolve(root, "长篇", "巨书", "正文");
-  const library = resolve(root, "拆文库", "盘龙");
+  const library = resolve(root, "拆文库", "对标样本甲");
   await mkdir(resolve(root, "长篇", "巨书", "大纲"), { recursive: true });
   await mkdir(body, { recursive: true });
   await mkdir(resolve(library, "章节"), { recursive: true });
-  await writeFile(resolve(library, "拆文报告.md"), "# 盘龙\n", "utf8");
+  await writeFile(resolve(library, "拆文报告.md"), "# 对标样本甲\n", "utf8");
   for (let start = 0; start < fileCount; start += 200) {
     await Promise.all(
       Array.from({ length: Math.min(200, fileCount - start) }, (_, offset) =>
@@ -241,7 +241,7 @@ describe("workspace scanning", () => {
     assert.deepEqual(bodyPage.entries.map((entry) => entry.name), ["第001章.md"]);
     assert.doesNotMatch(JSON.stringify(bodyPage), /node_modules|fake-package/);
 
-    const libraryPage = await listWorkspaceDirectory(root, "拆文库/盘龙");
+    const libraryPage = await listWorkspaceDirectory(root, "拆文库/对标样本甲");
     assert.deepEqual(
       libraryPage.entries.map((entry) => entry.name),
       ["章节", "拆文报告.md"],
@@ -269,7 +269,7 @@ describe("workspace scanning", () => {
     ]);
     const libraries = await searchWorkspace(root, "第1章", "libraries");
     assert.deepEqual(libraries.results.map((entry) => entry.path), [
-      "拆文库/盘龙/章节/第1章.md",
+      "拆文库/对标样本甲/章节/第1章.md",
     ]);
     assert.equal(projects.truncated, false);
     const pathOnly = await searchWorkspace(root, "示例书", "projects");

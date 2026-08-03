@@ -159,7 +159,9 @@ story_update_check() {
   local checked=0
   if [ "$((now - last))" -ge 86400 ]; then
     checked=1
-    latest=$(curl -fsS --max-time 5 "https://api.github.com/repos/qin1473692580-ux/oh-story/releases/latest" 2>/dev/null \
+    # -L 不可省：仓库改过名，GitHub API 对旧名返回 301；不跟重定向就只能拿到那段
+    # "Moved Permanently" 的 JSON，grep 不到 tag_name，更新检查会永远静默失效。
+    latest=$(curl -fsSL --max-time 5 "https://api.github.com/repos/qin1473692580-ux/oh-story-claudecode/releases/latest" 2>/dev/null \
       | grep -o '"tag_name"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | grep -o '[0-9][0-9.]*' | head -1) || latest=""
     # 成功失败都写时间戳：失败时 latest 留空当负缓存，否则取不到 GitHub 的环境每次开会话
     # 都要白等 5 秒 curl，且永远等不到提醒。
@@ -170,7 +172,7 @@ story_update_check() {
   [ "$checked" -eq 1 ] || return 0
   [ -n "$latest" ] || return 0
   if [ "$latest" != "$cur" ] && [ "$(printf '%s\n%s\n' "$cur" "$latest" | sort -t. -k1,1n -k2,2n -k3,3n | tail -1)" = "$latest" ]; then
-    OUTPUT+="[INFO] 网文工具箱有新版本 v${latest}（当前 v${cur}）。更新：npx skills add qin1473692580-ux/oh-story -y -g 后重跑 /story-setup；或对 /story 说“检查更新”。关掉提醒：export STORY_NO_UPDATE_CHECK=1${NL}"
+    OUTPUT+="[INFO] 网文工具箱有新版本 v${latest}（当前 v${cur}）。更新：npx skills add qin1473692580-ux/oh-story-claudecode -y -g 后重跑 /story-setup；或对 /story 说“检查更新”。关掉提醒：export STORY_NO_UPDATE_CHECK=1${NL}"
     HAS_CONTENT=true
   fi
 }

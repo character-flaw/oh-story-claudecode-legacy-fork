@@ -826,7 +826,8 @@ def progress_schema_pin_findings(repo_root: Path, expected: int) -> List[Finding
     """
     findings: List[Finding] = []
     paths: List[Path] = []
-    for root in (repo_root / "skills", repo_root / "demo"):
+    # 本仓库不随包分发第三方小说 demo，扫描根只有 skills/
+    for root in (repo_root / "skills",):
         paths.extend(path for path in iter_files(root) if path.suffix.lower() == ".md")
     # iter_files 按名字跳过 UPGRADING.md（历史章节不该被当前值约束），但 `## v21 当前契约`
     # 段里的续跑契约陈述与 agents_version 同理，bump 时必须跟着改。
@@ -856,7 +857,7 @@ def progress_schema_pin_findings(repo_root: Path, expected: int) -> List[Finding
 def validate_repository(repo_root: Path, manifest: ContractManifest) -> List[Finding]:
     findings: List[Finding] = []
 
-    scan_roots = [repo_root / "skills", repo_root / "demo"]
+    scan_roots = [repo_root / "skills"]
     scan_roots.extend(
         repo_root / relative_root
         for rule in LEGACY_RULES
