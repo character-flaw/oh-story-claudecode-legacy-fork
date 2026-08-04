@@ -256,6 +256,8 @@ The file system separates settings, outlines, prose, and tracking into independe
 
 **Deconstruction Library:** Deconstruction skills save structured outputs (characters, plotlines, settings, chapters) under `拆文库/{Book Title}/` at project root; long-form plot output includes `节奏.md` and `情绪模块.md`. Writing skills consume these assets through `对标/{书名}/剧情/` and related benchmark subdirectories, or automatically fall back to reading from the deconstruction library.
 
+**`.active-book`:** a text file at project root containing the active book's relative path (for example, `长篇/My Novel`). Hooks and writing skills use it to locate the current project.
+
 ## Knowledge Base
 
 Each skill includes a `references/` knowledge base loaded on demand to keep context lean.
