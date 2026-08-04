@@ -1,6 +1,16 @@
 name: Sync OpenCode Templates
 
 on:
+  # 本仓库习惯直推 main，只挂 pull_request 的话这条检查几乎不会执行。
+  push:
+    branches: [main]
+    paths:
+      - "skills/story-setup/references/templates/agents/**"
+      - "skills/story-setup/references/templates/CLAUDE.md.tmpl"
+      - "skills/story-setup/references/opencode/**"
+      - "scripts/check-opencode-adapter.sh"
+      - "scripts/sync-opencode.py"
+      - ".github/workflows/sync-opencode.yml"
   pull_request:
     branches: [main]
     paths:
