@@ -34,9 +34,22 @@ metadata: {"openclaw":{"source":"https://github.com/qin1473692580-ux/oh-story-cl
 
 1. **推荐顺序**：先 `/story-setup`（部署 hooks/agents/AGENTS），新开/刷新会话后运行 `/story-import`，最后用 `/story-long-write 日更/写第N章` 续写。
 2. **也可以直接 `/story-import`**：本 skill 会在进入深度分析前检测 `.story-deployed` 与专业 agent；未部署时会给出"先去 setup"或"继续导入（串行降级）"两种选择。
-3. **已导入过的项目**：不要重复跑完整导入；直接进入书名目录，确认 `.active-book`/`追踪/上下文.md` 指向正确书目，再用 `/story-long-write 日更` 或 `/story-long-write 写第N章`。
+3. **已导入过的当前协议项目**（书名目录下有 `追踪/_tracking-state.json`）：不要重复跑完整导入；直接进入书名目录，确认 `.active-book` 指向正确书目，再用 `/story-long-write 日更` 或 `/story-long-write 写第N章`。
+4. **v0.7.2 及更早的旧追踪项目**（有 `追踪/` 和正文，但没有 `追踪/_tracking-state.json`）：日更会停下要求重新导入，但**不需要重跑全书拆解**。只重建追踪即可，见下方「旧追踪项目迁移」。
 
 这段结论必须出现在任何导入源追问之前，避免用户只想确认流程却被直接要求贴原文。
+
+#### 旧追踪项目迁移
+
+书名目录下有 `追踪/` 与正文、但没有 `追踪/_tracking-state.json` 时，项目停在 v0.7.2 及更早的追踪结构上。正文和 `设定/`、`大纲/`、`拆文库/` 都不受影响，**只需重建 `追踪/`**，不重跑 Phase 2 拆解、不碰正文：
+
+1. 数清最后一个完整章号 `N`（`正文/第NNN章_*.md` 的最大值）。
+2. 从旧 `追踪/` 现有文件（角色状态、伏笔、时间线等，文件名按项目实际情况）和最近 3-5 章正文，重建当前状态：核心角色快照、未回收伏笔、已揭示时间线事件、长期约束、下一章承诺。角色快照的反推方法见 [references/character-state-reverse.md](references/character-state-reverse.md)。
+3. 按 [references/tracking-transaction.md](references/tracking-transaction.md) 的初始化事务格式构造 JSON，`last_chapter` 写 `N`（第 1..N 章不伪造逐章记录），执行 `tracking_commit.py init`。
+4. `init` 会把旧追踪结构按原样整体移入 `追踪/_旧追踪存档/` 再建当前协议——旧内容不删除、不参与解析，留给作者查阅。
+5. 跑 `tracking_commit.py check` 确认通过，再回 `/story-long-write 日更` 续写。
+
+重建结果以第 2 步的证据为准；拿不准的字段留空或写进 `continuity_risks`，不杜撰。用户明确要求重拆全书时才走完整 Phase 2。
 
 问用户：**「你要导入哪本书？请提供文件路径或直接贴文本。」**
 
@@ -527,7 +540,7 @@ name: {角色名}
 
 按篇幅对照对应的质量检查清单：
 
-- **长篇**：完整导入质量清单见 [references/structure-mapping-long.md](references/structure-mapping-long.md) 末尾（含正文文件数对照、核心角色独立快照、作者/读者时间线隔离、检查点为 `clean`、卷划分已经用户确认等）。
+- **长篇**：完整导入质量清单见 [references/structure-mapping-long.md](references/structure-mapping-long.md) 末尾（含正文文件数对照、核心角色独立快照、作者/读者时间线隔离、`tracking_commit.py check` 通过、卷划分已经用户确认等）。
 - **短篇**：质量清单见 [references/structure-mapping-short.md](references/structure-mapping-short.md) 末尾的质量检查清单（含 `正文.md` 单文件存在且格式合规、`设定.md` 含核心框架+对标摘要、未误建长篇专属目录等）。
 
 ### Step 2：缺失项提示
@@ -607,11 +620,11 @@ name: {角色名}
 
 > 本节仅适用于长篇导入。短篇为单文件全量迁移，无增量导入需求。
 
-超过 200 章的作品，采用增量导入策略：
+超过 200 章的作品，**拆解可以分批，追踪初始化必须一次覆盖全部已写章节**：
 
-1. **首期导入**：只导入前 50 章 + 全书概要
-2. **增量补充**：后续按用户需求分批导入剩余章节
-3. **上下文摘要**：未导入的章节生成简化摘要（200 字/章）
+1. **拆解分批**：首期只深拆前 50 章 + 全书概要，后续按需补拆更多章节到 `拆文库/`。
+2. **追踪一次到位**：初始化事务的 `last_chapter` 写**最后一个已写完的章号 N**，不是首期拆解的 50。`imported_through_chapter` 由 `init` 一次写定、之后不再推进，逐章事务只接受 N+1 起的章号；第 1..N 章不伪造逐章记录，续写从 N+1 开始。若 init 时误写成 50，第 51..N 章仍可逐章 `append` 补上（一章一份事务，章号必须连续），只是要为已写好的旧章逐章构造事务；不要删 `追踪/` 重来——`_旧追踪存档/` 也在里面。
+3. **上下文摘要**：未深拆的章节生成简化摘要（200 字/章），供反推当前状态用。
 
 ---
 

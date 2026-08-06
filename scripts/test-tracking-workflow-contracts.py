@@ -122,7 +122,12 @@ def test_import_records_a_cutoff_without_fabricated_old_deltas() -> None:
         ),
         "story-import tracking",
     )
-    require("旧追踪文件" not in text, "story-import must not describe an old tracking migration")
+    # 迁移可以描述，但只能「存档旧结构后按当前协议重建」，不得声称解析/转换旧追踪文件。
+    require("_旧追踪存档" in text, "story-import migration must archive the old tracking structure")
+    require(
+        "解析旧" not in text and "兼容层" not in text,
+        "story-import must not claim to parse or convert old tracking structures",
+    )
 
 
 def test_reader_timeline_is_kept_separate_from_author_truth() -> None:
@@ -235,7 +240,7 @@ def test_hooks_fail_closed_on_invalid_tracking_checkpoints() -> None:
                 "_tracking-state.json 缺失",
                 "schema_version=4",
                 "state_revision",
-                "重跑原 tracking_commit.py commit",
+                "mode=revision 事务重建派生视图",
                 "重新 /story-import",
                 "last_committed_chapter",
                 "必须先提交",
