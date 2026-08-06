@@ -47,6 +47,14 @@
       ]
     },
     {
+      "name": "prose-hook-strength-checker",
+      "source": "skills/story-long-write/scripts/check-hook-strength.js",
+      "targets": [
+        "skills/story-review/scripts/check-hook-strength.js",
+        "skills/story-short-write/scripts/check-hook-strength.js"
+      ]
+    },
+    {
       "name": "platform-text-exporter",
       "source": "skills/story-long-write/scripts/export-for-platform.js",
       "targets": [

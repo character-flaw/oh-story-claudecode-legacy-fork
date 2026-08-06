@@ -700,6 +700,7 @@ advisory 只提示可疑处，先看脚本给出的例外；故事内系统/界�
 | 质量检查 | `references/quality-checklist.md` + `references/reader-contract-and-progression.md` |
 | 错别字校验（写完第一步） | `scripts/check-typos.js` |
 | 情绪落地下限（错别字之后） | `scripts/check-emotion-floor.js` |
+| 钩子强度下限（钩子检查时） | `scripts/check-hook-strength.js` |
 | 禁用词扫描 | `references/banned-words.md` |
 | AI句式脚本复扫 | `scripts/check-ai-patterns.js` |
 | 去AI味 | `references/anti-ai-writing.md` |

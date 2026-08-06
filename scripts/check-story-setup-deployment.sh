@@ -292,6 +292,42 @@ bad_sentinel_out="$(run_from_nested "$bad_sentinel_root" session-start.sh 2>&1 |
 echo "$bad_sentinel_out" | grep -q '缺少 target_cli' || fail "session-start did not warn for missing sentinel target_cli"
 echo "$bad_sentinel_out" | grep -q '参考资料包缺失或为空' || fail "session-start did not warn for missing deployed reference bundle"
 
+# 多端部署时 references_dir 是逗号拼起来的多个路径。整串当单一路径判断会必然为假，
+# 让每个三端项目每次会话都误报参考包缺失——这条固定住「逐个判、只报真缺的」。
+multi_refs_root="$TMP_DIR/multi-refs"
+mkdir -p "$multi_refs_root"
+setup_git_repo "$multi_refs_root"
+copy_hooks "$multi_refs_root"
+for refs_variant in .claude .codex; do
+  mkdir -p "$multi_refs_root/$refs_variant/skills/story-setup/references/agent-references"
+  printf '# ref
+' > "$multi_refs_root/$refs_variant/skills/story-setup/references/agent-references/ref.md"
+done
+mkdir -p "$multi_refs_root/skills/story-setup/references/agent-references"
+printf '# ref
+' > "$multi_refs_root/skills/story-setup/references/agent-references/ref.md"
+cat > "$multi_refs_root/.story-deployed" <<'SENTINEL'
+deployed_at: 2026-05-24T00:00:00Z
+agents_version: 22
+setup_skill_version: 1.2.7
+target_cli: claude-code,codex,generic
+resolver_strategy: project-local-skill-reference
+references_dir: .claude/skills/story-setup/references/agent-references,.codex/skills/story-setup/references/agent-references,skills/story-setup/references/agent-references
+SENTINEL
+multi_refs_out="$(run_from_nested "$multi_refs_root" session-start.sh 2>&1 || true)"
+if echo "$multi_refs_out" | grep -q '参考资料包缺失'; then
+  fail "session-start reported missing reference bundle for a fully deployed multi-CLI project"
+fi
+
+# 多端里只缺一个时，必须报出来，而且只报缺的那个，不能把好的也列进去。
+rm -rf "$multi_refs_root/.codex/skills/story-setup/references/agent-references"
+partial_refs_out="$(run_from_nested "$multi_refs_root" session-start.sh 2>&1 || true)"
+echo "$partial_refs_out" | grep -q '参考资料包缺失' || fail "session-start did not warn when one of several reference dirs is missing"
+echo "$partial_refs_out" | grep -q '\.codex/skills/story-setup/references/agent-references' || fail "session-start did not name the missing reference dir"
+if echo "$partial_refs_out" | grep '参考资料包缺失' | grep -q '\.claude/skills/story-setup/references/agent-references'; then
+  fail "session-start listed an existing reference dir as missing"
+fi
+
 stale_previous_root="$TMP_DIR/stale-previous"
 mkdir -p "$stale_previous_root/.claude/skills/story-setup/references/agent-references"
 setup_git_repo "$stale_previous_root"

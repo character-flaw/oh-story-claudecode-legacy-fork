@@ -90,9 +90,22 @@ if sentinel_exists "$ROOT/.story-deployed"; then
 
   REFERENCES_DIR=$(read_sentinel_field references_dir "$ROOT/.story-deployed")
   if [ -n "$REFERENCES_DIR" ]; then
-    REFERENCES_PATH=$(resolve_project_path "$REFERENCES_DIR")
-    if [ ! -d "$REFERENCES_PATH" ] || ! find "$REFERENCES_PATH" -maxdepth 1 -type f -name "*.md" -print -quit 2>/dev/null | grep -q .; then
-      OUTPUT+="[WARN] story-setup 参考资料包缺失或为空：${REFERENCES_DIR}。重新运行 /story-setup；若重跑后仍报这条，是 skill 包本身没装全，按你的安装方式重装 oh-story-claudecode（npx skills add 或 marketplace 面板）再部署。${NL}${NL}"
+    # target_cli 含多个端时，story-setup 会把每端的参考目录逗号拼进同一个字段，
+    # references_dir 因此可能是 "a,b,c" 而不是单一路径。整串直接 -d 判断必然为假，
+    # 会让所有多端部署每次会话都误报参考包缺失。按逗号逐个判，只报真正缺的那些。
+    IFS=',' read -r -a REFERENCE_DIRS <<< "$REFERENCES_DIR"
+    MISSING_REFERENCES=""
+    for reference_dir in "${REFERENCE_DIRS[@]}"; do
+      reference_dir="${reference_dir#"${reference_dir%%[![:space:]]*}"}"
+      reference_dir="${reference_dir%"${reference_dir##*[![:space:]]}"}"
+      [ -n "$reference_dir" ] || continue
+      REFERENCES_PATH=$(resolve_project_path "$reference_dir")
+      if [ ! -d "$REFERENCES_PATH" ] || ! find "$REFERENCES_PATH" -maxdepth 1 -type f -name "*.md" -print -quit 2>/dev/null | grep -q .; then
+        MISSING_REFERENCES="${MISSING_REFERENCES}${MISSING_REFERENCES:+,}${reference_dir}"
+      fi
+    done
+    if [ -n "$MISSING_REFERENCES" ]; then
+      OUTPUT+="[WARN] story-setup 参考资料包缺失或为空：${MISSING_REFERENCES}。重新运行 /story-setup；若重跑后仍报这条，是 skill 包本身没装全，按你的安装方式重装 oh-story-claudecode（npx skills add 或 marketplace 面板）再部署。${NL}${NL}"
       HAS_CONTENT=true
     fi
   fi
