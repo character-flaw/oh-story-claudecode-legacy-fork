@@ -168,6 +168,7 @@ let failed = false;
 const allFindings = [];
 let previousKinds = null;
 let previousFile = null;
+let previousChapter = null;
 
 for (const file of files) {
   let input;
@@ -179,10 +180,21 @@ for (const file of files) {
     continue;
   }
   const result = scanDocument(input, file);
+  const chapterNo = result.chapterNo;
   allFindings.push(...result.findings.map((f) => ({ file, ...f })));
 
-  // 连续两章同一类钩子 → 刺激通胀，hooks-chapter 要求主动错落
-  if (previousKinds && result.kinds.size === 1 && previousKinds.size === 1) {
+  // 连续两章同一类钩子 → 刺激通胀，hooks-chapter 要求主动错落。
+  // 只在章号真的相邻（N-1 → N）时判：早先按「上一个非空文件」判，中间夹一个
+  // 零信号章就会拿 N-2 跟 N 比，消息还写着「上一章」；文件乱序传入时更是无稽。
+  // 章号解析不到就不判——宁可漏报，不报错话。
+  if (
+    previousKinds
+    && previousChapter !== null
+    && chapterNo !== null
+    && chapterNo === previousChapter + 1
+    && result.kinds.size === 1
+    && previousKinds.size === 1
+  ) {
     const [a] = [...previousKinds];
     const [b] = [...result.kinds];
     if (a === b) {
@@ -194,7 +206,9 @@ for (const file of files) {
       });
     }
   }
-  if (result.kinds.size > 0) { previousKinds = result.kinds; previousFile = file; }
+  previousKinds = result.kinds;
+  previousFile = file;
+  previousChapter = chapterNo;
 }
 
 if (options.json) {
@@ -283,9 +297,9 @@ function scanDocument(input, file) {
   const prose = proseOf(input);
   const findings = [];
   const bare = prose.replace(/[\s\p{P}]/gu, '');
-  if (bare.length < 200) return { findings, kinds: new Set() };
-
   const chapterNo = chapterNumberOf(input, file);
+  if (bare.length < 200) return { findings, kinds: new Set(), chapterNo };
+
   const position = positionOf(chapterNo);
 
   // 章尾窗口：按去标点后的字数回溯，避免长对话行把窗口撑空
@@ -362,7 +376,7 @@ function scanDocument(input, file) {
     });
   }
 
-  return { findings, kinds };
+  return { findings, kinds, chapterNo };
 }
 
 function compact(text) {
