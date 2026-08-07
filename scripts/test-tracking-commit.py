@@ -278,6 +278,98 @@ class TrackingCommitTests(unittest.TestCase):
         self.assertEqual(self.read_state()["state_revision"], 1)
         self.run_tool("check")
 
+    # ── 跨章连续性守卫 ────────────────────────────────────────────────
+    # 位置与持有物是整份覆盖的快照字段。工具原先不比对，于是「上一章住学校宿舍、
+    # 下一章骑车从家出发」「上一章娘摆针线摊、下一章变卖菜摊」这类硬伤可以
+    # commit + check 全绿地写进状态。下面五条固定住守卫行为。
+
+    def _moved(self, **overrides: object) -> dict[str, object]:
+        moved = snapshot()
+        moved.update(overrides)
+        return moved
+
+    def test_hot_context_carries_location_and_held_items(self) -> None:
+        self.init()
+        self.run_tool("commit", transaction(1, character=True))
+
+        context = (self.project / "追踪/上下文.md").read_text(encoding="utf-8")
+        self.assertIn("位置：火箭军文工团高层看片会", context)
+        self.assertIn("持有：", context)
+
+    def test_unacknowledged_location_drift_is_rejected(self) -> None:
+        self.init()
+        self.run_tool("commit", transaction(1, character=True))
+        drift = transaction(2, character=True)
+        drift["character_snapshots"] = {"江晨": self._moved(location="老家县城的自家院子")}
+
+        result = self.run_tool("commit", drift, expect=2)
+
+        self.assertIn("的位置从", result.stderr)
+        self.assertIn("continuity_changes", result.stderr)
+        self.assertEqual(self.read_state()["last_committed_chapter"], 1)
+
+    def test_acknowledged_location_change_is_accepted_and_logged(self) -> None:
+        self.init()
+        self.run_tool("commit", transaction(1, character=True))
+        moved = transaction(2, character=True)
+        moved["character_snapshots"] = {"江晨": self._moved(location="老家县城的自家院子")}
+        moved["delta"]["continuity_changes"] = [
+            {
+                "name": "江晨",
+                "field": "location",
+                "from": "火箭军文工团高层看片会",
+                "to": "老家县城的自家院子",
+                "reason": "看片会散场后请假回乡拍老兵素材",
+            }
+        ]
+
+        self.run_tool("commit", moved)
+
+        self.assertEqual(self.read_state()["characters"]["江晨"]["location"], "老家县城的自家院子")
+        record = (self.project / "追踪/逐章记录/第002章.md").read_text(encoding="utf-8")
+        self.assertIn("## 跨章连续性变更", record)
+        self.assertIn("请假回乡拍老兵素材", record)
+
+    def test_continuity_from_must_match_stored_value(self) -> None:
+        """from 写错就拒绝——这是逼模型真去读旧值的那道闩。"""
+        self.init()
+        self.run_tool("commit", transaction(1, character=True))
+        guessed = transaction(2, character=True)
+        guessed["character_snapshots"] = {"江晨": self._moved(location="老家县城的自家院子")}
+        guessed["delta"]["continuity_changes"] = [
+            {
+                "name": "江晨",
+                "field": "location",
+                "from": "文工团",
+                "to": "老家县城的自家院子",
+                "reason": "凭印象填的旧值",
+            }
+        ]
+
+        result = self.run_tool("commit", guessed, expect=2)
+
+        self.assertIn("与库内旧值不符", result.stderr)
+        self.assertEqual(self.read_state()["last_committed_chapter"], 1)
+
+    def test_phantom_continuity_change_is_rejected(self) -> None:
+        self.init()
+        self.run_tool("commit", transaction(1, character=True))
+        phantom = transaction(2, character=True)
+        phantom["character_snapshots"] = {"江晨": snapshot()}
+        phantom["delta"]["continuity_changes"] = [
+            {
+                "name": "江晨",
+                "field": "location",
+                "from": "火箭军文工团高层看片会",
+                "to": "火箭军文工团高层看片会",
+                "reason": "其实没变",
+            }
+        ]
+
+        result = self.run_tool("commit", phantom, expect=2)
+
+        self.assertIn("并未发生的变更", result.stderr)
+
     def test_stale_revision_cannot_overwrite_newer_state(self) -> None:
         self.init()
         self.run_tool("commit", transaction(1, foreshadow=True, timeline=True))

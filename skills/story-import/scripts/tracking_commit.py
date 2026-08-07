@@ -40,6 +40,11 @@ CONTEXT_HEADINGS = (
     "## 下一章承诺",
     "## 连贯性风险",
 )
+# 跨章连续性守卫字段：这两项一旦被无声改写，就是「上一章住宿舍、下一章骑车从家出发」
+# 「上一章娘摆针线摊、下一章变卖菜摊」这类读者一眼看穿的硬伤。改它们必须报旧值。
+GUARDED_SNAPSHOT_FIELDS = ("location", "abilities_resources")
+GUARDED_FIELD_LABEL = {"location": "位置", "abilities_resources": "持有物"}
+
 FORESHADOW_STATUSES = ("已埋", "已回收", "已过期", "放弃")
 FORESHADOW_IMPORTANCE = ("高", "中", "低")
 REVEAL_STATUSES = ("未揭示", "部分揭示", "已揭示")
@@ -565,11 +570,19 @@ def render_context(state: dict[str, Any]) -> str:
     current_chapter = (
         "尚未开篇" if state["last_committed_chapter"] == 0 else f"第{state['last_committed_chapter']}章"
     )
-    character_lines = [
-        f"{name}｜{state['characters'][name]['identity']}｜{state['characters'][name]['state']}｜"
-        f"目标：{state['characters'][name]['goal']}"
-        for name in context["active_character_names"]
-    ]
+    # 位置与持有物必须进热上下文。它们此前只存在快照文件里，而日更规则是
+    # 「核心复用角色若不在本节，才去读 角色状态/{名}.md」——主角必然在本节，
+    # 那条分支永不触发，于是写下一章时模型看不到人在哪、手里有什么。
+    # 实测后果：上一章写住校宿舍，下一章骑车从家出发；上一章娘摆针线摊，
+    # 下一章变卖菜摊。这两类是跨章连续性最高频的崩法。
+    character_lines = []
+    for name in context["active_character_names"]:
+        snapshot = state["characters"][name]
+        held = "；".join(snapshot["abilities_resources"][:2]) or "无"
+        character_lines.append(
+            f"{name}｜{snapshot['identity']}｜{snapshot['state']}｜"
+            f"位置：{snapshot['location']}｜持有：{held}｜目标：{snapshot['goal']}"
+        )
     sections: list[tuple[str, list[str]]] = [
         (
             "## 当前位置",
@@ -617,9 +630,23 @@ def normalize_delta(
         {
             "result", "character_changes", "foreshadow_changes", "timeline_events", "constraints",
             "next_chapter_commitments", "retired_context_items", "retired_characters",
+            "continuity_changes",
         },
         "delta",
     )
+    continuity_changes: list[dict[str, Any]] = []
+    for index, raw in enumerate(as_list(delta.get("continuity_changes", []), "delta.continuity_changes")):
+        item = as_mapping(raw, f"delta.continuity_changes[{index}]")
+        require_known_keys(item, {"name", "field", "from", "to", "reason"}, f"delta.continuity_changes[{index}]")
+        field = clean_text(item.get("field"), f"delta.continuity_changes[{index}].field", max_bytes=32)
+        require(field in GUARDED_SNAPSHOT_FIELDS, f"delta.continuity_changes[{index}].field must be one of {GUARDED_SNAPSHOT_FIELDS}")
+        continuity_changes.append({
+            "name": safe_file_component(item.get("name"), f"delta.continuity_changes[{index}].name"),
+            "field": field,
+            "from": clean_text(item.get("from"), f"delta.continuity_changes[{index}].from", max_bytes=480),
+            "to": clean_text(item.get("to"), f"delta.continuity_changes[{index}].to", max_bytes=480),
+            "reason": clean_text(item.get("reason"), f"delta.continuity_changes[{index}].reason", max_bytes=240),
+        })
     retired_characters = [
         safe_file_component(name, f"delta.retired_characters[{index}]")
         for index, name in enumerate(as_list(delta.get("retired_characters", []), "delta.retired_characters"))
@@ -681,6 +708,7 @@ def normalize_delta(
             delta.get("retired_context_items", []), "delta.retired_context_items", maximum=11
         ),
         "retired_characters": retired_characters,
+        "continuity_changes": continuity_changes,
     }
 
 
@@ -722,6 +750,14 @@ def render_delta(chapter: int, title: str, delta: dict[str, Any], core_names: se
     lines.extend(f"- {item}" for item in delta["constraints"])
     if not delta["constraints"]:
         lines.append("- 无")
+    if delta.get("continuity_changes"):
+        # 位置/持有物的改动单列一节：这两项是跨章硬伤高发区，出问题时要能一眼
+        # 翻到是哪一章、从什么改成什么、给的理由是什么。
+        lines.extend(["", "## 跨章连续性变更"])
+        lines.extend(
+            f"- {item['name']}｜{GUARDED_FIELD_LABEL[item['field']]}｜{item['from']} → {item['to']}｜{item['reason']}"
+            for item in delta["continuity_changes"]
+        )
     retired = delta.get("retired_context_items", []) + [
         f"角色状态：{name}" for name in delta.get("retired_characters", [])
     ]
@@ -882,6 +918,74 @@ def checkpoint_record(
     if keep_first_chapter:
         current["first_recorded_chapter"] = previous["first_recorded_chapter"] if previous else chapter
     return current
+
+
+def guarded_field_value(snapshot: dict[str, Any], field: str) -> str:
+    value = snapshot[field]
+    return "；".join(value) if isinstance(value, list) else value
+
+
+def brief(text: str, limit: int = 60) -> str:
+    """错误信息里的旧值/新值要截断。
+
+    持有物是列表拼串，正常项目就可能上千字；原样拼进报错会刷屏，作者根本
+    看不到后面那句「该怎么办」。
+    """
+    return text if len(text) <= limit else f"{text[:limit]}…（共 {len(text)} 字）"
+
+
+def enforce_continuity_guard(state: dict[str, Any], transaction: dict[str, Any]) -> None:
+    """位置与持有物改变时，必须逐字报出库内旧值才放行。
+
+    新快照是整份覆盖，工具原先不比对，于是「学校宿舍 302 室」可以被一句
+    「家中（每日骑车走读）」无声顶掉，commit 和 check 全绿。这正是读者最容易
+    一眼看穿的那类硬伤（上一章住校、下一章骑车从家出发；上一章娘摆针线摊、
+    下一章变卖菜摊）。
+
+    要求 from 与库内旧值逐字相同，是这条守卫的关键：模型必须先去读旧值才写得
+    出来，光靠热上下文里那点信息猜不出。写对了说明它确实知道自己在改什么，
+    这时候再改就是有意为之，不是漂移。
+    """
+    acknowledged: dict[tuple[str, str], dict[str, Any]] = {}
+    for item in transaction["delta"]["continuity_changes"]:
+        key = (portable_name_key(item["name"]), item["field"])
+        require(key not in acknowledged, f"delta.continuity_changes 重复申报 {item['name']} 的 {item['field']}")
+        acknowledged[key] = item
+
+    for name, snapshot in transaction["snapshots"].items():
+        previous = state["characters"].get(name)
+        if previous is None:
+            continue
+        for field in GUARDED_SNAPSHOT_FIELDS:
+            before = guarded_field_value(previous, field)
+            after = guarded_field_value(snapshot, field)
+            if before == after:
+                continue
+            label = GUARDED_FIELD_LABEL[field]
+            item = acknowledged.pop((portable_name_key(name), field), None)
+            require(
+                item is not None,
+                f"{name} 的{label}从「{brief(before)}」改成了「{brief(after)}」，但 delta.continuity_changes 没有申报。"
+                f"跨章连续性硬伤多数是这样无声发生的：先确认这次改动是剧情需要还是忘了上一章的设定，"
+                f"确实要改就补一条 {{name, field={field}, from, to, reason}}，from 必须是库内旧值原文。",
+            )
+            claimed_from = brief(item["from"])
+            claimed_to = brief(item["to"])
+            require(
+                item["from"] == before,
+                f"{name} 的{label}申报的 from 与库内旧值不符：申报「{claimed_from}」，库内是「{brief(before)}」。"
+                f"说明这次改动没有基于上一章的真实状态——先读 追踪/角色状态/{name}.md 再改。",
+            )
+            require(
+                item["to"] == after,
+                f"{name} 的{label}申报的 to 与新快照不符：申报「{claimed_to}」，快照是「{brief(after)}」。",
+            )
+
+    require(
+        not acknowledged,
+        "delta.continuity_changes 申报了并未发生的变更："
+        + "、".join(f"{name}.{field}" for name, field in sorted(acknowledged)),
+    )
 
 
 def merge_transaction(state: dict[str, Any], transaction: dict[str, Any]) -> dict[str, Any]:
@@ -1051,6 +1155,9 @@ def apply_transaction(project: Path, document: object) -> dict[str, Any]:
         set(next_state["characters"]) | set(transaction["delta"]["retired_characters"]),
     )
     views = render_views(next_state)
+    # 放在渲染之后：快照体积超硬上限之类的结构性错误应当先报，
+    # 否则一份又超大又漂移的快照只会看到连续性告警，看不到真正的拦截原因。
+    enforce_continuity_guard(state, transaction)
     next_state_payload = json_payload(next_state)
     path = delta_path(tracking, transaction["chapter"])
     if transaction["mode"] == "append" and path.exists():
