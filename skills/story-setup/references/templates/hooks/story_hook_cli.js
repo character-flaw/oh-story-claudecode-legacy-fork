@@ -100,6 +100,24 @@ if (command === "extract-target") {
   } catch {
     process.exit(0)
   }
+} else if (command === "prose-block-reason") {
+  // 写正文前的核心阻断判据，与 OpenCode(plugin.ts) / ZCode(story_zcode_hook.js) /
+  // Codex(prose_block_reason) 调的是同一个 core.proseBlockReason。
+  //
+  // 补这个子命令是为了消掉一处端间不对称：那三端都调核，唯独 Claude Code 的
+  // guard-outline-before-prose.sh 只有纯 bash 的细纲检查，于是「首建第 N+1 章前必须
+  // 先提交第 N 章追踪事务」这条顺序校验在 Claude 端从不触发——跨章连续性守卫因此
+  // 在这一端是开环的（模型不主动跑 tracking_commit.py 就没人拦漂移）。
+  //
+  // 契约：stdout 空 = 放行；非空 = 阻断理由（单行）。异常一律静默放行，兜底不反噬流程。
+  const root = args[0]
+  const absolute = args[1]
+  try {
+    const reason = core.proseBlockReason(root, absolute)
+    if (reason) process.stdout.write(reason)
+  } catch {
+    process.exit(0)
+  }
 } else if (command === "is-git-commit") {
   // git commit 侦测。命令优先取 STORY_COMMIT_COMMAND，缺省再从 HOOK_INPUT 挖 command/cmd/script。
   // 用共享核 isGitCommitCommand（js 分词语义，与 OpenCode/ZCode 一致；对「引号内分隔符」这类

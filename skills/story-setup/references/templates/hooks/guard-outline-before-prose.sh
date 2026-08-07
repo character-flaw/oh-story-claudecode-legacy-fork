@@ -77,6 +77,30 @@ case "$TARGET" in
   *)  ABS="$ROOT/$TARGET" ;;
 esac
 
+# 核判据：OpenCode / ZCode / Codex 三端写正文前都调 core.proseBlockReason，唯独本端
+# 早先只有下面的纯 bash 细纲检查，于是「首建第 N+1 章前必须先提交第 N 章追踪事务」这条
+# 顺序校验在 Claude Code 上从不触发——跨章连续性守卫在这一端是开环的：模型不主动跑
+# tracking_commit.py 就没人拦位置/持有物漂移。
+#
+# 但只能对**已采用追踪模型的项目**跑核：core 里 requireState=true，state 不存在就一律
+# 阻断，会把所有尚未迁移的老项目当场卡死（check-story-setup-deployment 的
+# 「有细纲应放行」用例正是这一场景）。以 _tracking-state.json 是否在场作门槛后，
+# 已迁移项目拿到与另三端一致的顺序校验，未迁移项目行为不变。
+# node 不可用或核抛异常时回落纯 bash（只查细纲），兜底不能反过来卡流程。
+GUARD_BOOK=""
+case "$(basename "$(dirname "$ABS")")" in
+  正文) GUARD_BOOK="$(dirname "$(dirname "$ABS")")" ;;
+  *)    [ "$(basename "$ABS")" = "正文.md" ] && GUARD_BOOK="$(dirname "$ABS")" ;;
+esac
+if [ -n "$GUARD_BOOK" ] && [ -f "$GUARD_BOOK/追踪/_tracking-state.json" ] \
+   && node -e "" >/dev/null 2>&1 && [ -f "$CLI" ]; then
+  BLOCK_REASON="$(node "$CLI" prose-block-reason "$ROOT" "$ABS" 2>/dev/null || true)"
+  if [ -n "$BLOCK_REASON" ]; then
+    printf '%s\n' "$BLOCK_REASON" >&2
+    exit 2
+  fi
+fi
+
 BASE="$(basename "$ABS")"
 PARENT="$(basename "$(dirname "$ABS")")"
 

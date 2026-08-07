@@ -590,6 +590,23 @@ run_guard() {
 [ "$(run_guard 'book/正文/第1章_开端.md')" = "2" ] || fail "guard did not BLOCK long prose when 细纲 missing"
 : > "$guard_root/book/大纲/细纲_第1章.md"
 [ "$(run_guard 'book/正文/第1章_开端.md')" = "0" ] || fail "guard wrongly blocked long prose when 细纲 present"
+
+# 追踪顺序校验：OpenCode/ZCode/Codex 三端写正文前都调 core.proseBlockReason，本端早先
+# 只有纯 bash 细纲检查，「首建第 N+1 章前必须先提交第 N 章追踪事务」在 Claude Code 上
+# 从不触发，跨章连续性守卫在这一端是开环的。下面三条锁住：已迁移项目拿到顺序校验、
+# 未迁移项目行为不变（core 的 requireState=true 会把老项目一律卡死，必须以 state 在场为门槛）。
+mkdir -p "$guard_root/book/追踪"
+printf '%s\n' '{"schema_version":4,"state_revision":0,"last_committed_chapter":1}' > "$guard_root/book/追踪/_tracking-state.json"
+# 派生视图必须同在：核会比对 上下文.md 的状态修订与 state 的 state_revision，
+# 只造 state 不造派生视图会被正确判为「派生视图不一致」，那是另一条判据，不是本组要测的。
+printf '# ctx\n\n> 状态修订：0。\n' > "$guard_root/book/追踪/上下文.md"
+: > "$guard_root/book/大纲/细纲_第3章.md"
+[ "$(run_guard 'book/正文/第3章_跳章.md')" = "2" ] || fail "guard did not BLOCK chapter skip when tracking state is behind"
+: > "$guard_root/book/大纲/细纲_第2章.md"
+[ "$(run_guard 'book/正文/第2章_续写.md')" = "0" ] || fail "guard wrongly blocked the next chapter in sequence"
+rm -f "$guard_root/book/追踪/_tracking-state.json"
+[ "$(run_guard 'book/正文/第3章_跳章.md')" = "0" ] || fail "guard must not require tracking state on projects that have not migrated"
+
 [ "$(run_guard 'book/正文/第001章_开端.md')" = "0" ] || fail "guard did not tolerate chapter-number zero padding (第001章 vs 细纲_第1章)"
 : > "$guard_root/book/大纲/细纲_第7章_惊变.md"
 [ "$(run_guard 'book/正文/第7章_x.md')" = "0" ] || fail "guard did not tolerate title-suffixed 细纲 (细纲_第7章_惊变.md)"
