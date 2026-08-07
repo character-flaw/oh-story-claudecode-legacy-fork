@@ -30,7 +30,14 @@ findings 分级：
 --pressure=high 用于高压章（对峙/摊牌/生死/揭穿），阈值上调并强制要求失控点；
 --pressure=low 用于过场/信息整理章，阈值下调但不取消下限。
 --fail-on=blocking 只在 blocking finding 出现时退出 1；默认 --fail-on=all 时
-blocking/advisory 任一出现即退出 1（info 不计入）。`;
+blocking/advisory 任一出现即退出 1（info 不计入）。
+
+**--pressure 作用于本次传入的全部文件，不是逐章判定。** 一批里混着高压章和过场章
+时必须分组调用：用 high 会把过场章全判不达标，用 low 会把高压章全放过。
+
+  node check-emotion-floor.js --check --pressure=high 正文/第041章_*.md 正文/第043章_*.md
+  node check-emotion-floor.js --check --pressure=low  正文/第042章_*.md
+  node check-emotion-floor.js --check 正文/第*.md          # 不带则全部按 normal`;
 
 // ── 三通道词表 ────────────────────────────────────────────────────────────
 // 收词原则：只收「身体自己发生、不受意志控制」的信号。不收情绪标签本身
