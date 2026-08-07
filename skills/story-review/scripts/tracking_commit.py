@@ -42,6 +42,12 @@ CONTEXT_HEADINGS = (
 )
 # 跨章连续性守卫字段：这两项一旦被无声改写，就是「上一章住宿舍、下一章骑车从家出发」
 # 「上一章娘摆针线摊、下一章变卖菜摊」这类读者一眼看穿的硬伤。改它们必须报旧值。
+# 位置与持有物进热上下文时按字节截断。两者的 schema 上限分别是 240 和每项 384，
+# 6 个活跃角色原样铺开最坏能给热上下文多加约 6KB，直接把 12288 的硬顶顶穿，
+# 届时作者只会看到「hot context exceeds」而不知道该删哪。热上下文本来就是摘要：
+# 让写作端知道「人在学校宿舍」就够了，精确原文在 角色状态/{名}.md，
+# 而申报 continuity_changes 的 from 要求匹配完整值，正好逼模型去读那份文件。
+CONTEXT_FIELD_BYTES = 60
 GUARDED_SNAPSHOT_FIELDS = ("location", "abilities_resources")
 GUARDED_FIELD_LABEL = {"location": "位置", "abilities_resources": "持有物"}
 
@@ -135,6 +141,15 @@ def portable_name_key(name: str) -> str:
 
 def byte_size(text: str) -> int:
     return len(text.encode("utf-8"))
+
+
+def clip_bytes(text: str, limit: int) -> str:
+    if byte_size(text) <= limit:
+        return text
+    clipped = text
+    while byte_size(clipped) > limit - 3:
+        clipped = clipped[:-1]
+    return clipped + "…"
 
 
 def emit(text: str, *, error: bool = False) -> None:
@@ -581,7 +596,8 @@ def render_context(state: dict[str, Any]) -> str:
         held = "；".join(snapshot["abilities_resources"][:2]) or "无"
         character_lines.append(
             f"{name}｜{snapshot['identity']}｜{snapshot['state']}｜"
-            f"位置：{snapshot['location']}｜持有：{held}｜目标：{snapshot['goal']}"
+            f"位置：{clip_bytes(snapshot['location'], CONTEXT_FIELD_BYTES)}｜"
+            f"持有：{clip_bytes(held, CONTEXT_FIELD_BYTES)}｜目标：{snapshot['goal']}"
         )
     sections: list[tuple[str, list[str]]] = [
         (
