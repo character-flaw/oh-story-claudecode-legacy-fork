@@ -136,6 +136,51 @@ if (meta.length !== 5) {
 }
 NODE
 
+# --- 裸英文词泄漏（实测样本：「watcher 伏在暗里」）---
+# 中文正文里冒出的小写英文常用词基本是内部代号/占位没换成中文名。判据要两层：
+# 整行以中文为主 + 词是独立全小写 ≥4 位。负例锁住 PDF/DB-40/.pptx/LABADMIN 与纯英文行。
+BARE_POS="$TMP_DIR/bare-positive.md"
+BARE_NEG="$TMP_DIR/bare-negative.md"
+cat > "$BARE_POS" <<'PROSE'
+她望向废园更深处，那里土气眼还压着没说破的东西，watcher 伏在暗里，像是也在等她下一步。
+这一趟东行本是为母系的根，如今根到了手，却牵出更长的 shadow 线。
+PROSE
+set +e
+node "$SCRIPT" --json "$BARE_POS" > "$OUT"
+set -e
+node - "$OUT" <<'NODE'
+const fs = require('fs');
+const report = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
+const hits = report.findings.filter((f) => /裸英文词泄漏/.test(f.message));
+if (hits.length !== 2) {
+  throw new Error(`expected 2 bare-latin leaks (watcher/shadow), got ${hits.length}: ${JSON.stringify(hits.map((f) => f.excerpt))}`);
+}
+if (!hits.every((f) => f.severity === 'blocking')) {
+  throw new Error('bare-latin leaks outside dialogue must be blocking');
+}
+NODE
+echo "  OK 裸英文词泄漏：watcher / shadow 命中且为 blocking"
+
+cat > "$BARE_NEG" <<'PROSE'
+两个文件的签名像素、章印缺口和纸纤维灰点完全重合，批次放行PDF 就是抠出来的。
+排好授权生效、检索DB-40、调阅原图和权限关闭的时点，逐项核过。
+我的名字从《星桥项目_v28.pptx》首页消失，掌声还没停下来。
+四月七日凌晨，周妍用 LABADMIN 账号重新上传过同名文件。
+The room was quiet and nobody moved at all in there.
+PROSE
+set +e
+node "$SCRIPT" --json "$BARE_NEG" > "$OUT"
+set -e
+node - "$OUT" <<'NODE'
+const fs = require('fs');
+const report = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
+const hits = report.findings.filter((f) => /裸英文词泄漏/.test(f.message));
+if (hits.length !== 0) {
+  throw new Error(`大写缩写/编号道具/扩展名/账号名/纯英文行都不得判为裸英文词，got ${JSON.stringify(hits.map((f) => f.excerpt))}`);
+}
+NODE
+echo "  OK 裸英文词泄漏：PDF / DB-40 / .pptx / LABADMIN / 纯英文行 0 误伤"
+
 # --- 章号引用泄漏 chNN（实测泄漏样本：「她在 ch13 便学乖了」）---
 # 中文工程词表只收「第X章/本章/前文」，ch13 这类英文缩写一条都不命中，
 # 曾整段漏进正文无人拦。正例查五种变体全中，负例查 Bach13/A13 不误伤。

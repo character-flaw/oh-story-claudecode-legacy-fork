@@ -153,10 +153,30 @@ _NET_SOFT_PATTERNS = [
     (re.compile(r"^(Sure|Certainly|Here'?s|As an AI|I (?:cannot|can't|am unable|apologize))"), "英文 AI 腔"),
     (re.compile(r"我(无法|不能)(继续(写|创作|生成|下去|输出)?|生成(内容|文本|正文)?|创作|续写|写作|完成(这个|本)?(章|篇|创作|请求)?)"), "生成拒绝语"),
 ]
+# 裸英文词泄漏：与 js 核 bareLatinLeak 逐字对应（parity 由 test-prose-net-parity.sh 锁）。
+# 中文正文里冒出的小写英文常用词基本都是内部代号/占位没换成中文名，实测样本
+# 「那里土气眼还压着没说破的东西，watcher 伏在暗里」——watcher 本该是个中文名字。
+# 两层判据缺一就误报：整行以中文为主（≥50%）、词是独立全小写 ≥4 位且不接字母数字/不跟 ./_-。
+_NET_BARE_LATIN = re.compile(r"(?<![A-Za-z0-9./_-])[a-z]{4,}(?![A-Za-z0-9._-])")
+_NET_CJK_CHAR = re.compile(r"[\u4e00-\u9fff]")
+
+
+def _net_bare_latin_leak(line: str) -> str | None:
+    if len(line) < 8:
+        return None
+    if len(_NET_CJK_CHAR.findall(line)) / len(line) < 0.5:
+        return None
+    m = _NET_BARE_LATIN.search(line)
+    return m.group(0) if m else None
+
+
 _NET_HARD_PATTERNS = [
     (re.compile(r"[（(](此处|以下|这里|下文|后续)?[^）)]{0,10}(省略|略去|略过)[^）)]{0,10}[）)]"), "占位符（括号省略）"),
     (re.compile(r"(TODO|占位符|placeholder|待补充|此处待填|此处待补)"), "占位符"),
     (re.compile(r"(细纲|情节点|卷纲|功能标签|目标情绪|字数目标|章首钩子|章尾钩子|任务描述)"), "工程词泄漏"),
+    # 章号引用的英文缩写：ch13 / Ch.13 / CH 13 / chapter 13。中文工程词表收不到它，
+    # 实测有整段「她在 ch13 便学乖了」漏进正文。与 js 核 META_CHAPTER_REF_RE 逐字对应。
+    (re.compile(r"\b(?:ch|chap|chapter)\.?\s?\d{1,4}\b", re.IGNORECASE), "章号引用泄漏"),
     (re.compile("�"), "乱码（替换字符）"),
 ]
 
@@ -320,7 +340,15 @@ def prose_net_findings(text: str) -> list[str]:
             m = rx.search(s)
             if m:
                 findings.append(f"第{i}行 {label}：「{m.group(0)[:20]}」")
+                hit = True
                 break
+        if hit:
+            continue
+        bare = _net_bare_latin_leak(s)
+        if bare:
+            findings.append(
+                f"第{i}行 裸英文词泄漏：「{bare}」——中文正文里的小写英文词多是没换成中文名的内部代号/占位；改成角色或事物在故事内的中文称呼。"
+            )
     for (la, sa), (lb, sb) in zip(content, content[1:]):
         if sa == sb and len(sa) >= 8:
             findings.append(f"第{lb}行 紧邻复读：整行与上一行完全相同「{sa[:20]}」")

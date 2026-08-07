@@ -53,6 +53,14 @@ const META_TIER1_RE = /细纲|情节点|卷纲|功能标签|目标情绪|字数�
 // 「她在 ch13 便学乖了」「ch13 那夜合苔三倍灵气第一次涌」——中文词表一条都不命中，
 // 因为它只收「第X章/本章/前文」这些写法。中文正文里 ch+数字 不可能是故事内表达，
 // 归 tier1。\b 前界保证 Bach13、Munch13 这类词不误伤。
+// 裸英文词泄漏：中文正文里的小写英文常用词基本是内部代号/占位没换成中文名
+// （实测样本「那里土气眼还压着没说破的东西，watcher 伏在暗里」）。两层判据缺一就误报：
+// 整行以中文为主（≥50%）、词是独立全小写 ≥4 位且不接字母数字/不跟 ./_-。
+// 101 个正文文件实测零误报——语料里的拉丁串全是 PDF/USB 大写缩写、DB-40/HZ-03 编号道具、
+// .pptx/.md 扩展名。与 hook 核 bareLatinLeak 同规格。
+const BARE_LATIN_WORD = /(?<![A-Za-z0-9./_-])[a-z]{4,}(?![A-Za-z0-9._-])/;
+const CJK_CHAR_RE = /[\u4e00-\u9fff]/g;
+
 const META_CHAPTER_REF_RE = /\b(?:ch|chap|chapter)\.?\s?\d{1,4}\b/i;
 const META_TIER2_RE = /第[一二三四五六七八九十百千万两0-9]+章|本章|这一章|上一章|下一章|上章|下章|前一章|后一章|前文|后文|伏笔|读者|任务描述/;
 
@@ -315,6 +323,23 @@ function findMetaLeak(content) {
         excerpt: compact(trimmed.slice(Math.max(0, m.index - 6), m.index + 18)),
       });
       continue; // tier1 命中即可，不再叠 tier2
+    }
+    if (trimmed.length >= 8) {
+      const cjk = (trimmed.match(CJK_CHAR_RE) || []).length;
+      if (cjk / trimmed.length >= 0.5) {
+        const bare = trimmed.match(BARE_LATIN_WORD);
+        if (bare) {
+          findings.push({
+            line: lineNo,
+            column: trimmed.indexOf(bare[0]) + 1,
+            type: 'meta-leak',
+            severity: dialogue ? 'advisory' : 'blocking',
+            message: `裸英文词泄漏：「${bare[0]}」是中文正文里的小写英文词，多为没换成中文名的内部代号或占位；改成角色/事物在故事内的中文称呼。${dialogue ? '例外：角色确实说了外语时，台词里可能合法。' : ''}`,
+            excerpt: compact(trimmed.slice(Math.max(0, trimmed.indexOf(bare[0]) - 10), trimmed.indexOf(bare[0]) + 24)),
+          });
+          continue;
+        }
+      }
     }
     m = META_TIER2_RE.exec(trimmed);
     if (m) {
