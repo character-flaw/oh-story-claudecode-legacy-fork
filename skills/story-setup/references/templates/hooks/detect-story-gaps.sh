@@ -101,9 +101,14 @@ for BOOK_DIR in "${BOOK_DIRS[@]}"; do
     # 长篇判定：有 追踪/ 视为长篇，要求 大纲/ 目录
     if [ -d "$BOOK_DIR/追踪" ] && [ ! -d "$BOOK_DIR/大纲" ]; then
       BOOK_OUTPUT+="[WARN] ${BOOK_NAME}：已有 正文/ 但缺少 大纲/，建议先搭大纲。${NL}"
-    # 短篇判定：无 追踪/ 视为短篇，要求 小节大纲.md 单文件
-    elif [ ! -d "$BOOK_DIR/追踪" ] && [ ! -f "$BOOK_DIR/小节大纲.md" ]; then
-      BOOK_OUTPUT+="[WARN] ${BOOK_NAME}：已有正文但缺少 小节大纲.md，建议先搭大纲。${NL}"
+    # 短篇判定：无 追踪/ 视为短篇，要求根目录有一份大纲。
+    # 规范名是 小节大纲.md，但只认这一个名字会误报：作者常把 设定.md 与
+    # 小节大纲.md 并成一份 设定与大纲.md，里面「十节骨架」就是大纲。这条是
+    # advisory，本意是抓「没大纲就动笔」；有大纲还天天被念，作者会学会忽略
+    # 整条告警。改成任一 *大纲*.md 在场即算有。
+    elif [ ! -d "$BOOK_DIR/追踪" ] \
+      && ! find "$BOOK_DIR" -maxdepth 1 -type f -name '*大纲*.md' -print -quit 2>/dev/null | grep -q .; then
+      BOOK_OUTPUT+="[WARN] ${BOOK_NAME}：已有正文但缺少大纲（规范名 小节大纲.md），建议先搭大纲。${NL}"
     fi
   fi
 
