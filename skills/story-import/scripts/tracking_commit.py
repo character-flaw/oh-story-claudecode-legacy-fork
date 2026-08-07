@@ -921,8 +921,22 @@ def checkpoint_record(
 
 
 def guarded_field_value(snapshot: dict[str, Any], field: str) -> str:
+    """人看到的形态：保持存储顺序，与 角色状态/{名}.md 渲染出来的一致。
+
+    申报的 from 要跟这个比对，作者/模型从快照文件里照抄即可。
+    """
     value = snapshot[field]
     return "；".join(value) if isinstance(value, list) else value
+
+
+def guarded_field_key(snapshot: dict[str, Any], field: str) -> str:
+    """判「变没变」用的形态：列表排序后再比，顺序不算变化。
+
+    持有物列表重新生成时顺序常会抖动，按原序比会把纯重排判成改动，
+    逼作者为一个没发生的变化写申报——闸口一旦开始误报就会被忽略。
+    """
+    value = snapshot[field]
+    return "；".join(sorted(value)) if isinstance(value, list) else value
 
 
 def brief(text: str, limit: int = 60) -> str:
@@ -959,7 +973,7 @@ def enforce_continuity_guard(state: dict[str, Any], transaction: dict[str, Any])
         for field in GUARDED_SNAPSHOT_FIELDS:
             before = guarded_field_value(previous, field)
             after = guarded_field_value(snapshot, field)
-            if before == after:
+            if guarded_field_key(previous, field) == guarded_field_key(snapshot, field):
                 continue
             label = GUARDED_FIELD_LABEL[field]
             item = acknowledged.pop((portable_name_key(name), field), None)

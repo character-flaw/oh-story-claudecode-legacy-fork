@@ -11,6 +11,7 @@ Detect model-degeneration fingerprints that a degrading model cannot self-report
   - mid-sentence truncation (截断): file ends without terminal/closing punctuation
   - placeholder / refusal / meta leakage (元信息泄漏): 作为AI / 我无法继续 / 此处省略 / 乱码
   - engineering-word leakage (工程词泄漏): 细纲 / 情节点 / 本章 / 下一章 / 任务描述 漏进正文
+  - chapter-ref leakage (章号引用泄漏): ch13 / Ch.13 / chapter 13 这类英文章号缩写漏进正文
 
 Each finding carries severity: blocking (复读/截断/占位拒绝语/tier1 纯工程词，正文里永不合法，
 命中即重写) 或 advisory (tier2 章节/歧义词、对话行里的工程词，只提示、交人/LLM 判)。
@@ -48,6 +49,11 @@ const PLACEHOLDER_PATTERNS = [
 // tier1 = 纯写作流水线术语，正文里几乎永不合法；tier2 = 章节结构/歧义词，角色在故事内
 // 真实阅读/讨论「第X章」或故事内系统/界面用语时属例外（report-only，交人/LLM 判）。
 const META_TIER1_RE = /细纲|情节点|卷纲|功能标签|目标情绪|字数目标|章首钩子|章尾钩子/;
+// 章号引用的英文缩写形态：ch13 / Ch.13 / CH 13 / chapter 13。实测泄漏样本
+// 「她在 ch13 便学乖了」「ch13 那夜合苔三倍灵气第一次涌」——中文词表一条都不命中，
+// 因为它只收「第X章/本章/前文」这些写法。中文正文里 ch+数字 不可能是故事内表达，
+// 归 tier1。\b 前界保证 Bach13、Munch13 这类词不误伤。
+const META_CHAPTER_REF_RE = /\b(?:ch|chap|chapter)\.?\s?\d{1,4}\b/i;
 const META_TIER2_RE = /第[一二三四五六七八九十百千万两0-9]+章|本章|这一章|上一章|下一章|上章|下章|前一章|后一章|前文|后文|伏笔|读者|任务描述/;
 
 const options = { json: false, files: [], failOn: 'all' };
@@ -284,7 +290,19 @@ function findMetaLeak(content) {
       if (/^第[一二三四五六七八九十百千万两0-9]+章/.test(trimmed)) continue;
     }
     const dialogue = isDialogueLike(trimmed);
-    let m = META_TIER1_RE.exec(trimmed);
+    let m = META_CHAPTER_REF_RE.exec(trimmed);
+    if (m) {
+      findings.push({
+        line: lineNo,
+        column: m.index + 1,
+        type: 'meta-leak',
+        severity: dialogue ? 'advisory' : 'blocking',
+        message: `章号引用泄漏：「${m[0]}」是写作时用的章节编号，正文里不该出现；改成角色当下可感知的时间锚点（那年秋天／她还住在庄后那阵子），不要换成「第13章」——换个写法仍是同一个毛病。${dialogue ? '例外：角色在故事内真实讨论书稿章节时，台词里可能合法。' : ''}`,
+        excerpt: compact(trimmed.slice(Math.max(0, m.index - 8), m.index + 20)),
+      });
+      continue;
+    }
+    m = META_TIER1_RE.exec(trimmed);
     if (m) {
       // tier1 纯工程词正文里几乎永不合法→blocking；但写手/编剧题材里角色在故事内真讨论创作，
       // 台词（对话行）里可能合法，降级为 advisory（仍报告，交人/LLM 判，不强制回炉）。

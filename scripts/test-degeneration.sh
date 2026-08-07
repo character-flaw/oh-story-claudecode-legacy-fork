@@ -136,6 +136,51 @@ if (meta.length !== 5) {
 }
 NODE
 
+# --- 章号引用泄漏 chNN（实测泄漏样本：「她在 ch13 便学乖了」）---
+# 中文工程词表只收「第X章/本章/前文」，ch13 这类英文缩写一条都不命中，
+# 曾整段漏进正文无人拦。正例查五种变体全中，负例查 Bach13/A13 不误伤。
+CHAPREF_POS="$TMP_DIR/chapref-positive.md"
+CHAPREF_NEG="$TMP_DIR/chapref-negative.md"
+
+cat > "$CHAPREF_POS" <<'EOF'
+她在 ch13 便学乖了，灵田异样能藏便藏。
+Ch.13 那夜合苔三倍灵气第一次涌，她只当是土砂。
+CH 13 之后，母亲教她认清楚自己是谁。
+chapter 13 的事她记了很久。
+chap13 那页她折了角。
+EOF
+set +e
+node "$SCRIPT" --json "$CHAPREF_POS" > "$OUT"
+set -e
+node - "$OUT" <<'NODE'
+const fs = require('fs');
+const report = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
+const hits = report.findings.filter((f) => f.type === 'meta-leak' && /章号引用泄漏/.test(f.message));
+if (hits.length !== 5) {
+  throw new Error(`expected 5 chapter-ref leaks (ch13/Ch.13/CH 13/chapter 13/chap13), got ${hits.length}: ${JSON.stringify(hits.map((f) => f.excerpt))}`);
+}
+if (!hits.every((f) => f.severity === 'blocking')) {
+  throw new Error('chapter-ref leaks outside dialogue must be blocking');
+}
+NODE
+
+cat > "$CHAPREF_NEG" <<'EOF'
+她翻开巴赫 Bach13 号作品的谱子，指尖停在封皮上。
+他数了数，一共 13 个箱子，每个箱子上都写着 A13。
+苏苗把册子合上，灵田活格又拓开半格。
+EOF
+set +e
+node "$SCRIPT" --json "$CHAPREF_NEG" > "$OUT"
+set -e
+node - "$OUT" <<'NODE'
+const fs = require('fs');
+const report = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
+const hits = report.findings.filter((f) => f.type === 'meta-leak');
+if (hits.length !== 0) {
+  throw new Error(`Bach13 / A13 / 正常正文不得判为章号泄漏，got ${JSON.stringify(hits.map((f) => f.excerpt))}`);
+}
+NODE
+
 # 负例：标题行「第N章 章名」(无 ## 前缀) 必须不算工程词泄漏；正常正文 0 命中。
 cat > "$META_NEG" <<'EOF'
 第1章 军宣新星
