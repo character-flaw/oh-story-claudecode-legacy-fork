@@ -66,8 +66,8 @@ from pathlib import Path
 
 skills = sorted(Path('skills').glob('*/SKILL.md'))
 commands = sorted(Path('skills/story-setup/references/zcode/commands').glob('*.md'))
-assert len(skills) == 13, f'expected 13 skills, got {len(skills)}'
-assert len(commands) == 13, f'expected 13 commands, got {len(commands)}'
+assert len(skills) == 14, f'expected 14 skills, got {len(skills)}'
+assert len(commands) == 14, f'expected 14 commands, got {len(commands)}'
 expected = {p.parent.name for p in skills}
 assert {p.stem for p in commands} == expected
 

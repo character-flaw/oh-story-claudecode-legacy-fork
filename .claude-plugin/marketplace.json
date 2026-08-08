@@ -5,7 +5,7 @@
   },
   "metadata": {
     "description": "网络小说创作工具箱 — 扫榜、拆文、写作全流程 Claude Code skill，覆盖长篇与短篇网文",
-    "version": "0.7.4"
+    "version": "0.7.5"
   },
   "plugins": [
     {
@@ -46,6 +46,26 @@
       ],
       "skills": [
         "./skills/story-long-scan"
+      ]
+    },
+    {
+      "name": "story-data-analyze",
+      "description": "平台后台数据归因分析。用「分发→回访→章内」三层框架定位读者流失的真实位置，按指标官方定义计算、防止误读。",
+      "source": "./",
+      "strict": false,
+      "version": "1.0.0",
+      "category": "novel-market",
+      "keywords": [
+        "analytics",
+        "retention",
+        "funnel",
+        "后台数据",
+        "流失",
+        "番茄",
+        "chinese"
+      ],
+      "skills": [
+        "./skills/story-data-analyze"
       ]
     },
     {
